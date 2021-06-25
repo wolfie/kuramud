@@ -1,28 +1,21 @@
 import React from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import useWebsocket from "./useWebsocket";
+import useWebsocket, { TopicHandler } from "./useWebsocket";
 import { useEffect } from "react";
 
-const HELLO = Symbol("HELLO");
-
 function App() {
-  const [state, setState] = React.useState(0);
-
   const ws = useWebsocket("ws://localhost:8000");
 
-  const helloHandler = React.useCallback(
-    (msg) => console.log(`HELLO: ${msg}`),
-    []
-  );
-  ws.addTopicHandler(HELLO, helloHandler);
-
   useEffect(() => {
-    return () => console.log("aa");
-  }, [state]);
+    const helloHandler: TopicHandler = (msg) => console.log(`HELLO: ${msg}`);
+    ws.addTopicHandler("HELLO", helloHandler);
+
+    return () => ws.removeTopicHandler("HELLO", helloHandler);
+  }, [ws]);
 
   return (
-    <div className="App" key={state}>
+    <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
@@ -37,11 +30,8 @@ function App() {
           Learn React
         </a>
         <button
-          disabled={!ws.connected}
-          onClick={() => {
-            setState((a) => a + 1);
-            ws.connected && ws.send("hello", "derps");
-          }}
+          disabled={!ws.connectedFunctions.connected}
+          onClick={() => ws.sendIfPossible("hello", "derps")}
         >
           Button
         </button>

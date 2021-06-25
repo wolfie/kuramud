@@ -1,34 +1,37 @@
 import * as React from "react";
 import { useEffect } from "react";
 
-type WebsocketHookConnected = {
-  connected: true;
-  send: (topic: string, data: string) => void;
-};
+export type TopicHandler = (payload: string) => void;
+export type TopicHandlerRegistration = (
+  topic: string,
+  handler: TopicHandler
+) => void;
+export type SendTopicData = (topic: string, data: string) => void;
+
 type WebsocketHook = {
-  addTopicHandler: (symbol: symbol, handler: (payload: string) => void) => void;
-} & ({ connected: false } | WebsocketHookConnected);
+  addTopicHandler: TopicHandlerRegistration;
+  removeTopicHandler: TopicHandlerRegistration;
+  sendIfPossible: SendTopicData;
+  connectedFunctions:
+    | { connected: false }
+    | { connected: true; send: SendTopicData };
+};
 const useWebsocket = (url: string): WebsocketHook => {
   const [ws, setWs] = React.useState<WebSocket>();
   const [connected, setConnected] = React.useState(false);
-  const [handlers, setHandlers] = React.useState<
-    Record<string, Array<{ symbol: Symbol; handler: (data: string) => void }>>
-  >({});
+  const handlers = React.useRef<Record<string, TopicHandler[]>>({});
 
-  const messageHandler = React.useCallback(
-    (e) => {
-      if (typeof e.data !== "string") {
-        console.info(`unexpected websocket data type: ${typeof e.data}`);
-        return;
-      }
+  const messageHandler = (e: MessageEvent) => {
+    if (typeof e.data !== "string") {
+      console.info(`unexpected websocket data type: ${typeof e.data}`);
+      return;
+    }
 
-      const [topic, payload] = e.data.split(" ", 2);
-      const topicHandlers = handlers[topic.toUpperCase()];
-      if (topicHandlers)
-        Object.values(topicHandlers).forEach(({ handler }) => handler(payload));
-    },
-    [handlers]
-  );
+    const [topic, payload] = e.data.split(" ", 2);
+    const topicHandlers = handlers.current[topic.toUpperCase()];
+    if (topicHandlers)
+      Object.values(topicHandlers).forEach((handler) => handler(payload));
+  };
 
   useEffect(() => {
     const ws = new WebSocket(url);
@@ -51,51 +54,77 @@ const useWebsocket = (url: string): WebsocketHook => {
   }
 
   const addTopicHandler: WebsocketHook["addTopicHandler"] = (
-    symbol,
+    topic,
     handler
   ) => {
-    const topic = symbol.description;
-    if (!topic) {
-      console.trace("foo");
-      return;
-    }
-
     const normalizedTopic = topic.toUpperCase();
-    const topicHandlers = handlers[normalizedTopic];
+    const topicHandlers = handlers.current[normalizedTopic];
     if (!topicHandlers) {
-      setHandlers({ ...handlers, [normalizedTopic]: [{ symbol, handler }] });
+      handlers.current = { ...handlers.current, [normalizedTopic]: [handler] };
     } else {
-      const existingEntry = topicHandlers.find(
-        (existingEntry) => existingEntry.symbol === symbol
+      const handlerExists = topicHandlers.some(
+        (existingHandler) => existingHandler === handler
       );
-      if (!existingEntry) {
-        setHandlers({
-          ...handlers,
-          [normalizedTopic]: [...topicHandlers, { handler, symbol }],
-        });
-      } else if (existingEntry.handler !== handler) {
-        setHandlers({
-          ...handlers,
-          [normalizedTopic]: topicHandlers.map(($) =>
-            $ !== existingEntry ? $ : { symbol, handler }
-          ),
-        });
+      if (!handlerExists) {
+        handlers.current = {
+          ...handlers.current,
+          [normalizedTopic]: [...topicHandlers, handler],
+        };
       }
     }
   };
+  const removeTopicHandler: WebsocketHook["removeTopicHandler"] = (
+    topic,
+    handler
+  ) => {
+    const normalizedTopic = topic.toUpperCase();
+    const topicHandlers = handlers.current[normalizedTopic];
+    if (!topicHandlers) return;
 
-  const send: WebsocketHookConnected["send"] = (topic, data) => {
-    if (!connected || !ws) {
-      console.warn("trying to send messages before websocket has connected");
-      return;
-    }
+    const handlerExists = topicHandlers.some(
+      (existingHandler) => existingHandler === handler
+    );
+    if (!handlerExists) return;
 
-    ws.send(`${topic.toUpperCase()} ${data}`);
+    handlers.current = {
+      ...handlers.current,
+      [normalizedTopic]: topicHandlers.filter(
+        (existingHandler) => existingHandler !== handler
+      ),
+    };
   };
 
-  return connected
-    ? { connected, addTopicHandler, send }
-    : { connected, addTopicHandler };
+  const send = React.useCallback<SendTopicData>(
+    (topic, data) => {
+      if (!connected || !ws) {
+        console.warn("trying to send messages before websocket has connected");
+        return;
+      }
+
+      ws.send(`${topic.toUpperCase()} ${data}`);
+    },
+    [connected, ws]
+  );
+
+  const getReturnValue = (): WebsocketHook => ({
+    addTopicHandler,
+    removeTopicHandler,
+    sendIfPossible: (topic, msg) => connected && send(topic, msg),
+    connectedFunctions: connected
+      ? { connected: true, send }
+      : { connected: false },
+  });
+
+  const [returnValue, setReturnValue] = React.useState<WebsocketHook>(
+    getReturnValue()
+  );
+
+  useEffect(() => {
+    setReturnValue(getReturnValue());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getReturnValue is fine as a non-dep
+  }, [connected, ws, send]);
+
+  return returnValue;
 };
 
 export default useWebsocket;
