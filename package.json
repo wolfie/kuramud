@@ -1,10 +1,14 @@
 {
   "name": "kuramud",
+  "version": "0.1.0",
   "workspaces": [
     "packages/*"
   ],
-  "devDependencies": {
-    "typescript": "^4.3.4"
+  "scripts": {
+    "start": "concurrently -n server,client \"yarn workspace kuramud-server start\" \"yarn workspace kuramud-client start\""
   },
-  "version": "0.1.0"
+  "dependencies": {
+    "concurrently": "^6.2.0",
+    "typescript": "^4.3.4"
+  }
 }
