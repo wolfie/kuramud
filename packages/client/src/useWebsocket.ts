@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 type Topic = "LOGIN" | "LOGOUT"; // TODO: use shared library between server/client
 
-export type TopicHandler = (payload: string) => void;
+export type TopicHandler = (payload: Record<string, unknown>) => void;
 export type TopicHandlerRegistration = (
   topic: Topic,
   handler: TopicHandler
@@ -82,7 +82,7 @@ const useWebsocket = (url: string): WebsocketHook => {
       console.log(`[receive ${topic}] ${payload}`);
 
       const topicHandlers = handlers.filter(w(url));
-      topicHandlers.forEach((entry) => entry.handler(payload));
+      topicHandlers.forEach((entry) => entry.handler(JSON.parse(payload)));
     };
   }, [handlers, url, websockets]);
 

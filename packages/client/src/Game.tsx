@@ -29,13 +29,31 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
 
   useEffect(
     () => {
-      const loginHandler: TopicHandler = (msgPlayerUuid) => {
-        if (msgPlayerUuid === playerUuid) setHasRegisteredWithServer(true);
-        console.log(`LOGIN: ${msgPlayerUuid}`);
+      const loginHandler: TopicHandler = (payload) => {
+        if (payload.playerUuid === playerUuid) {
+          setHasRegisteredWithServer(true);
+          console.log(`LOGIN: you`);
+        } else {
+          console.log(`LOGIN: ${payload}`);
+        }
       };
-      ws.addTopicHandler("LOGIN", loginHandler);
 
-      return () => ws.removeTopicHandler("LOGIN", loginHandler);
+      const logoutHandler: TopicHandler = (payload) => {
+        if (payload.playerUuid === playerUuid) {
+          setHasRegisteredWithServer(false);
+          console.log(`LOGOUT: you`);
+        } else {
+          console.log(`LOGOUT: ${payload}`);
+        }
+      };
+
+      ws.addTopicHandler("LOGIN", loginHandler);
+      ws.addTopicHandler("LOGOUT", logoutHandler);
+
+      return () => {
+        ws.removeTopicHandler("LOGIN", loginHandler);
+        ws.removeTopicHandler("LOGOUT", logoutHandler);
+      };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [playerUuid]
