@@ -1,21 +1,18 @@
 import * as t from "io-ts";
-import { Topic, TopicTypeMap } from "./Topic";
-
-export type PayloadOfTopic<T extends Topic> = t.TypeOf<typeof TopicTypeMap[T]>;
-
-export type TopicHandler<T extends Topic> = (
-  payload: PayloadOfTopic<T>
-) => void;
-
-type TopicHandlerEntry<T extends Topic> = {
-  topic: T;
-  handler: TopicHandler<T>;
-};
+import {
+  PayloadOfTopic,
+  Topic,
+  TopicHandlerEntry,
+  TopicHandlerRegistrationWithUnregistration,
+} from "./Topic";
 
 export class EventDistributor {
   private topicHandlers: TopicHandlerEntry<any>[] = [];
 
-  public register = <T extends Topic>(topic: T, handler: TopicHandler<T>) => {
+  public register: TopicHandlerRegistrationWithUnregistration = (
+    topic,
+    handler
+  ) => {
     const handlerEntry = { topic, handler };
     this.topicHandlers.push(handlerEntry);
     return () => {

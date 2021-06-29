@@ -10,7 +10,8 @@
     "isolatedModules": true,
     "declaration": true,
     "rootDir": "./src",
-    "outDir": "./lib"
+    "outDir": "./lib",
+    "lib": ["ES2020"]
   },
   "include": ["src/**/*.ts"]
 }

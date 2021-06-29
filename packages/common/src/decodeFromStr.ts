@@ -1,6 +1,11 @@
 import { isRight } from "fp-ts/lib/Either";
 import * as t from "io-ts";
 
+export const decodeFromStrC =
+  <T extends t.Any>(type: T) =>
+  (input: string) =>
+    decodeFromStr(type, input);
+
 export const decodeFromStr = <T extends t.Any>(
   type: T,
   input: string

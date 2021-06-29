@@ -32,15 +32,6 @@ class Engine {
       this.usersCurrentRoom[userUuid] = roomUuid;
     };
 
-    const removeUserFromRoom = (userUuid: string) => {
-      console.log(`removeUserFromRoom(${userUuid})`);
-      const currentRoomUuid = this.usersCurrentRoom[userUuid];
-      delete this.usersCurrentRoom[userUuid];
-      this.roomsWithUsers[currentRoomUuid] = (
-        this.roomsWithUsers[currentRoomUuid] ?? []
-      ).filter((existingUserUuid) => existingUserUuid !== userUuid);
-    };
-
     this.eventDistributor.register("LOGIN", (args) => {
       if (this.users[args.playerUuid]) {
         console.error("User is already logged in");
@@ -60,21 +51,34 @@ class Engine {
       );
     });
 
-    this.eventDistributor.register("LOGOUT", (args) => {
-      if (!this.users[args.playerUuid]) {
-        console.error("User is not logged in");
-        return;
-      }
-
-      const playerCurrentRoom = this.usersCurrentRoom[args.playerUuid];
-      removeUserFromRoom(args.playerUuid);
-      this.options.eventSender(
-        "LOGOUT",
-        [...this.roomsWithUsers[playerCurrentRoom], args.playerUuid],
-        { playerUuid: args.playerUuid }
-      );
-    });
+    this.eventDistributor.register("LOGOUT", (args) =>
+      this.logoutPlayer(args.playerUuid)
+    );
   }
+
+  private removeUserFromRoom = (userUuid: string) => {
+    console.log(`removeUserFromRoom(${userUuid})`);
+    const currentRoomUuid = this.usersCurrentRoom[userUuid];
+    delete this.usersCurrentRoom[userUuid];
+    this.roomsWithUsers[currentRoomUuid] = (
+      this.roomsWithUsers[currentRoomUuid] ?? []
+    ).filter((existingUserUuid) => existingUserUuid !== userUuid);
+  };
+
+  logoutPlayer = (playerUuid: string) => {
+    if (!this.users[playerUuid]) {
+      console.error("User is not logged in");
+      return;
+    }
+
+    const playerCurrentRoom = this.usersCurrentRoom[playerUuid];
+    this.removeUserFromRoom(playerUuid);
+    this.options.eventSender(
+      "LOGOUT",
+      [...this.roomsWithUsers[playerCurrentRoom], playerUuid],
+      { playerUuid: playerUuid }
+    );
+  };
 
   onMessage = (message: string) => {
     const input = parseInput(message);

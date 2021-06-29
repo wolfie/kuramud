@@ -1,12 +1,10 @@
 import * as React from "react";
 import { useEffect } from "react";
-import type { Topic } from "kuramud-common";
-
-export type TopicHandler = (payload: Record<string, unknown>) => void;
-export type TopicHandlerRegistration = (
-  topic: Topic,
-  handler: TopicHandler
-) => void;
+import type {
+  Topic,
+  TopicHandler,
+  TopicHandlerRegistrationWithUnregistration,
+} from "kuramud-common";
 
 export type SendTopicData = (
   topic: Topic,
@@ -18,9 +16,17 @@ const w =
   <T extends { url: string }>(entry: T): entry is T & { url: URL } =>
     entry.url === url;
 
+export const gatherForCleanup = (fns: Array<() => void>) => () =>
+  fns.forEach((fn) => fn());
+
+type HandlerEntry<T extends Topic = Topic> = {
+  url: string;
+  topic: T;
+  handler: TopicHandler<T>;
+};
+
 type WebsocketHook = {
-  addTopicHandler: TopicHandlerRegistration;
-  removeTopicHandler: TopicHandlerRegistration;
+  on: TopicHandlerRegistrationWithUnregistration;
 } & ({ connected: false } | { connected: true; send: SendTopicData });
 
 const useWebsocket = (url: string): WebsocketHook => {
@@ -31,7 +37,7 @@ const useWebsocket = (url: string): WebsocketHook => {
     Array<{ url: string; connected: boolean }>
   >([]);
   const [handlers, setHandlers] = React.useState<
-    Array<{ url: string; topic: Topic; handler: TopicHandler }>
+    Array<HandlerEntry /*{ url: string; topic: Topic; handler: TopicHandler<Topic> }*/>
   >([]);
 
   useEffect(() => {
@@ -80,8 +86,10 @@ const useWebsocket = (url: string): WebsocketHook => {
       const [topic, payload] = e.data.split(" ", 2);
       console.log(`[receive ${topic}] ${payload}`);
 
-      const topicHandlers = handlers.filter(w(url));
-      topicHandlers.forEach((entry) => entry.handler(JSON.parse(payload)));
+      handlers
+        .filter(w(url))
+        .filter((entry) => entry.topic === topic)
+        .forEach((entry) => entry.handler(JSON.parse(payload)));
     };
   }, [handlers, url, websockets]);
 
@@ -97,17 +105,15 @@ const useWebsocket = (url: string): WebsocketHook => {
     ...(connecteds.find(w(url))?.connected
       ? { connected: true, send }
       : { connected: false }),
-    addTopicHandler: (topic, handler) =>
-      setHandlers((handlers) => [...handlers, { url, topic, handler }]),
-    removeTopicHandler: (topic, handler) =>
-      setHandlers((handlers) =>
-        handlers.filter(
-          (entry) =>
-            entry.handler !== handler ||
-            entry.topic !== topic ||
-            entry.url !== url
-        )
-      ),
+    on: (topic, handler) => {
+      const newEntry: HandlerEntry<typeof topic> = { url, topic, handler };
+      setHandlers((handlers) => [...handlers, newEntry as any]);
+
+      return () =>
+        setHandlers((handlers) =>
+          handlers.filter((entry) => (entry as any) !== newEntry)
+        );
+    },
   };
 };
 

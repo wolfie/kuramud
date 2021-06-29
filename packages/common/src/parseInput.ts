@@ -1,6 +1,5 @@
 import { decodeFromStr } from "./decodeFromStr";
-import { PayloadOfTopic } from "./EventDistributor";
-import { Topic, TopicTypeMap } from "./Topic";
+import { PayloadOfTopic, Topic, TopicTypeMap } from "./Topic";
 
 export const parseInput = <T extends Topic>(
   str: string

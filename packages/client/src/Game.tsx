@@ -1,9 +1,18 @@
 import React from "react";
-import useWebsocket, { TopicHandler } from "./useWebsocket";
+import useWebsocket, { gatherForCleanup } from "./useWebsocket";
 import { useEffect } from "react";
 import Room from "./components/Room";
-import Main from "./components/Main";
 import Controls from "./components/Controls";
+import SplitLayout from "./components/SplitLayout";
+import Messages from "./components/Messages";
+import styled from "styled-components";
+
+const Container = styled.div`
+  height: 100%;
+  width: 100%;
+  background-color: black;
+  color: white;
+`;
 
 type GameProps = {
   playerUuid: string;
@@ -11,6 +20,13 @@ type GameProps = {
 const Game: React.FC<GameProps> = ({ playerUuid }) => {
   const [hasRegisteredWithServer, setHasRegisteredWithServer] =
     React.useState(false);
+
+  const [messages, setMessages] = React.useState<string[]>([]);
+
+  const appendMessage = (msg: string) => {
+    console.log("append");
+    setMessages((messages) => [msg, ...messages].slice(0, 10));
+  };
 
   const ws = useWebsocket("ws://localhost:8000");
 
@@ -24,38 +40,47 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
   );
 
   useEffect(
-    () => {
-      const loginHandler: TopicHandler = (payload) => {
-        if (payload.playerUuid === playerUuid) {
-          setHasRegisteredWithServer(true);
-          console.log(`LOGIN: you`);
-        } else {
-          console.log(`LOGIN: ${payload}`);
-        }
-      };
+    () =>
+      gatherForCleanup([
+        ws.on("LOGIN", (payload) => {
+          if (payload.playerUuid === playerUuid) {
+            setHasRegisteredWithServer(true);
+            appendMessage(`LOGIN: you`);
+          } else {
+            appendMessage(`LOGIN: ${payload.playerUuid}`);
+          }
+        }),
 
-      const logoutHandler: TopicHandler = (payload) => {
-        if (payload.playerUuid === playerUuid) {
-          setHasRegisteredWithServer(false);
-          console.log(`LOGOUT: you`);
-        } else {
-          console.log(`LOGOUT: ${payload}`);
-        }
-      };
+        ws.on("LOGOUT", (payload) => {
+          if (payload.playerUuid === playerUuid) {
+            setHasRegisteredWithServer(false);
+            appendMessage(`LOGOUT: you`);
+          } else {
+            appendMessage(`LOGOUT: ${payload.playerUuid}`);
+          }
+        }),
+      ]),
 
-      ws.addTopicHandler("LOGIN", loginHandler);
-      ws.addTopicHandler("LOGOUT", logoutHandler);
-
-      return () => {
-        ws.removeTopicHandler("LOGIN", loginHandler);
-        ws.removeTopicHandler("LOGOUT", logoutHandler);
-      };
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [playerUuid]
   );
 
-  return <Main room={<Room />} controls={<Controls />} />;
+  return (
+    <Container>
+      <SplitLayout
+        size={{ second: 300 }}
+        layout={"columns"}
+        first={() => (
+          <SplitLayout
+            size={{ second: 300 }}
+            layout={"rows"}
+            first={() => <Room />}
+            second={() => <Messages messages={messages} />}
+          />
+        )}
+        second={() => <Controls />}
+      />
+    </Container>
+  );
 };
 
 export default Game;
