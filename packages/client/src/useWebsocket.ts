@@ -1,130 +1,115 @@
 import * as React from "react";
 import { useEffect } from "react";
 
+type Topic = "LOGIN" | "LOGOUT"; // TODO: use shared library between server/client
+
 export type TopicHandler = (payload: string) => void;
 export type TopicHandlerRegistration = (
-  topic: string,
+  topic: Topic,
   handler: TopicHandler
 ) => void;
-export type SendTopicData = (topic: string, data: string) => void;
+
+export type SendTopicData = (
+  topic: Topic,
+  data: Record<string, unknown>
+) => void;
+
+const w =
+  <URL extends string>(url: URL) =>
+  <T extends { url: string }>(entry: T): entry is T & { url: URL } =>
+    entry.url === url;
 
 type WebsocketHook = {
   addTopicHandler: TopicHandlerRegistration;
   removeTopicHandler: TopicHandlerRegistration;
-  sendIfPossible: SendTopicData;
-  connectedFunctions:
-    | { connected: false }
-    | { connected: true; send: SendTopicData };
-};
+} & ({ connected: false } | { connected: true; send: SendTopicData });
+
 const useWebsocket = (url: string): WebsocketHook => {
-  const [ws, setWs] = React.useState<WebSocket>();
-  const [connected, setConnected] = React.useState(false);
-  const handlers = React.useRef<Record<string, TopicHandler[]>>({});
-
-  const messageHandler = (e: MessageEvent) => {
-    if (typeof e.data !== "string") {
-      console.info(`unexpected websocket data type: ${typeof e.data}`);
-      return;
-    }
-
-    const [topic, payload] = e.data.split(" ", 2);
-    const topicHandlers = handlers.current[topic.toUpperCase()];
-    if (topicHandlers)
-      Object.values(topicHandlers).forEach((handler) => handler(payload));
-  };
+  const [websockets, setWebsockets] = React.useState<
+    Array<{ url: string; websocket: WebSocket }>
+  >([]);
+  const [connecteds, setConnecteds] = React.useState<
+    Array<{ url: string; connected: boolean }>
+  >([]);
+  const [handlers, setHandlers] = React.useState<
+    Array<{ url: string; topic: Topic; handler: TopicHandler }>
+  >([]);
 
   useEffect(() => {
-    const ws = new WebSocket(url);
-    setWs(ws);
+    const foundEntry = websockets.find(w(url));
+    if (!foundEntry) {
+      return setWebsockets((websockets) => [
+        ...websockets,
+        { url, websocket: new WebSocket(url) },
+      ]);
+    }
 
-    return () => {
-      ws.close();
-      setWs(undefined);
+    const setConnected = (connected: boolean) =>
+      setConnecteds((connecteds) =>
+        connecteds.some(w(url))
+          ? connecteds.map((entry) =>
+              entry.url !== url ? entry : { ...entry, connected }
+            )
+          : [...connecteds, { url, connected }]
+      );
+
+    const removeWebsocket = () =>
+      setWebsockets((websockets) => websockets.filter(w(url)));
+
+    const websocket = foundEntry.websocket;
+    websocket.onopen = () => {
+      console.log("connected");
+      setConnected(true);
     };
-  }, [url]);
-
-  if (ws) {
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
-    ws.onerror = (e) => {
+    websocket.onclose = () => {
+      console.log("closed");
+      setConnected(false);
+      removeWebsocket();
+    };
+    websocket.onerror = (e) => {
       console.error(e);
       setConnected(false);
+      removeWebsocket();
     };
-    ws.onmessage = messageHandler;
-  }
 
-  const addTopicHandler: WebsocketHook["addTopicHandler"] = (
-    topic,
-    handler
-  ) => {
-    const normalizedTopic = topic.toUpperCase();
-    const topicHandlers = handlers.current[normalizedTopic];
-    if (!topicHandlers) {
-      handlers.current = { ...handlers.current, [normalizedTopic]: [handler] };
-    } else {
-      const handlerExists = topicHandlers.some(
-        (existingHandler) => existingHandler === handler
-      );
-      if (!handlerExists) {
-        handlers.current = {
-          ...handlers.current,
-          [normalizedTopic]: [...topicHandlers, handler],
-        };
-      }
-    }
-  };
-  const removeTopicHandler: WebsocketHook["removeTopicHandler"] = (
-    topic,
-    handler
-  ) => {
-    const normalizedTopic = topic.toUpperCase();
-    const topicHandlers = handlers.current[normalizedTopic];
-    if (!topicHandlers) return;
-
-    const handlerExists = topicHandlers.some(
-      (existingHandler) => existingHandler === handler
-    );
-    if (!handlerExists) return;
-
-    handlers.current = {
-      ...handlers.current,
-      [normalizedTopic]: topicHandlers.filter(
-        (existingHandler) => existingHandler !== handler
-      ),
-    };
-  };
-
-  const send = React.useCallback<SendTopicData>(
-    (topic, data) => {
-      if (!connected || !ws) {
-        console.warn("trying to send messages before websocket has connected");
+    websocket.onmessage = (e) => {
+      if (typeof e.data !== "string") {
+        console.info(`unexpected websocket data type: ${typeof e.data}`);
         return;
       }
 
-      ws.send(`${topic.toUpperCase()} ${data}`);
-    },
-    [connected, ws]
-  );
+      const [topic, payload] = e.data.split(" ", 2);
+      console.log(`[receive ${topic}] ${payload}`);
 
-  const getReturnValue = (): WebsocketHook => ({
-    addTopicHandler,
-    removeTopicHandler,
-    sendIfPossible: (topic, msg) => connected && send(topic, msg),
-    connectedFunctions: connected
+      const topicHandlers = handlers.filter(w(url));
+      topicHandlers.forEach((entry) => entry.handler(payload));
+    };
+  }, [handlers, url, websockets]);
+
+  const send: SendTopicData = (topic, data) => {
+    console.log(`[send ${topic}]`);
+    const foundEntry = websockets.find(w(url));
+    foundEntry
+      ? foundEntry.websocket.send(`${topic} ${JSON.stringify(data)}`)
+      : console.error(`can't find websocket for ${url}`);
+  };
+
+  return {
+    ...(connecteds.find(w(url))?.connected
       ? { connected: true, send }
-      : { connected: false },
-  });
-
-  const [returnValue, setReturnValue] = React.useState<WebsocketHook>(
-    getReturnValue()
-  );
-
-  useEffect(() => {
-    setReturnValue(getReturnValue());
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- getReturnValue is fine as a non-dep
-  }, [connected, ws, send]);
-
-  return returnValue;
+      : { connected: false }),
+    addTopicHandler: (topic, handler) =>
+      setHandlers((handlers) => [...handlers, { url, topic, handler }]),
+    removeTopicHandler: (topic, handler) =>
+      setHandlers((handlers) =>
+        handlers.filter(
+          (entry) =>
+            entry.handler !== handler ||
+            entry.topic !== topic ||
+            entry.url !== url
+        )
+      ),
+  };
 };
 
 export default useWebsocket;
