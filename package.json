@@ -5,10 +5,15 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "concurrently -n server,client \"yarn workspace kuramud-server start\" \"yarn workspace kuramud-client start\""
+    "start": "tsc-watch --noClear -p ./packages/common/tsconfig.json --onSuccess \"yarn start:clientAndServer\"",
+    "start:clientAndServer": "concurrently -n server,client \"yarn workspace kuramud-server start\" \"yarn workspace kuramud-client start\""
   },
   "dependencies": {
     "concurrently": "^6.2.0",
     "typescript": "^4.3.4"
+  },
+  "devDependencies": {
+    "@types/tsc-watch": "^4.2.0",
+    "tsc-watch": "^4.4.0"
   }
 }

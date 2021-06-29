@@ -10,6 +10,7 @@
     "fp-ts": "^2.10.5",
     "io-ts": "^2.2.16",
     "io-ts-types": "^0.5.16",
+    "kuramud-common": "workspace:*",
     "monocle-ts": "^2.3.10",
     "newtype-ts": "^0.3.4",
     "typera-express": "^2.4.1",

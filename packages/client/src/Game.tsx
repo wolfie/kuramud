@@ -16,10 +16,6 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
 
   useEffect(
     () => {
-      console.log({
-        hasRegisteredWithServer,
-        connected: ws.connected,
-      });
       if (hasRegisteredWithServer || !ws.connected) return;
       ws.send("LOGIN", { playerUuid });
     },

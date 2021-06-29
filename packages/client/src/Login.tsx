@@ -1,18 +1,22 @@
 import React from "react";
+import { v4 as uuid } from "uuid";
 
 type LoginProps = {
   onLogin: (uuid: string) => void;
 };
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [uuid, setUuid] = React.useState(Math.random().toString());
+  const [playerUuid, setPlayerUuid] = React.useState(uuid());
 
   const onSubmit: React.FormEventHandler = (e) => {
     e.preventDefault();
-    onLogin(uuid);
+    onLogin(playerUuid);
   };
   return (
     <form onSubmit={onSubmit}>
-      <input onChange={(e) => setUuid(e.target.value)} value={uuid} />
+      <input
+        onChange={(e) => setPlayerUuid(e.target.value)}
+        value={playerUuid}
+      />
     </form>
   );
 };

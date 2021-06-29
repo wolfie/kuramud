@@ -1,16 +1,7 @@
 import { Room } from "../rooms/room";
 import TownSquare from "../rooms/StartWorld/TownSquare";
-import TopicValidators, {
-  isDecodeError,
-  TopicTypeMap,
-} from "./topicValidators";
-import { format } from "util";
 
-export const Topics = ["LOGIN", "LOGOUT"] as const;
-export type Topic = typeof Topics[number];
-
-export const isTopic = (topic: string): topic is Topic =>
-  Topics.includes(topic as any);
+import { Topic, EventDistributor, parseInput } from "kuramud-common";
 
 export type EventSender = (
   topic: Topic,
@@ -31,27 +22,26 @@ class Engine {
   private users: Record<string, User> = {};
   private roomsWithUsers: Record<string, string[]> = {};
   private usersCurrentRoom: Record<string, string> = {};
+  private eventDistributor = new EventDistributor();
 
-  constructor(private options: { eventSender: EventSender }) {}
+  constructor(private options: { eventSender: EventSender }) {
+    const addUserToRoom = (userUuid: string, roomUuid: string) => {
+      console.log(`addUserToRoom(${userUuid}, ${roomUuid})`);
+      const currentUsersInRoom = this.roomsWithUsers[roomUuid] ?? [];
+      this.roomsWithUsers[roomUuid] = [...currentUsersInRoom, userUuid];
+      this.usersCurrentRoom[userUuid] = roomUuid;
+    };
 
-  private addUserToRoom = (userUuid: string, roomUuid: string) => {
-    console.log(`addUserToRoom(${userUuid}, ${roomUuid})`);
-    const currentUsersInRoom = this.roomsWithUsers[roomUuid] ?? [];
-    this.roomsWithUsers[roomUuid] = [...currentUsersInRoom, userUuid];
-    this.usersCurrentRoom[userUuid] = roomUuid;
-  };
+    const removeUserFromRoom = (userUuid: string) => {
+      console.log(`removeUserFromRoom(${userUuid})`);
+      const currentRoomUuid = this.usersCurrentRoom[userUuid];
+      delete this.usersCurrentRoom[userUuid];
+      this.roomsWithUsers[currentRoomUuid] = (
+        this.roomsWithUsers[currentRoomUuid] ?? []
+      ).filter((existingUserUuid) => existingUserUuid !== userUuid);
+    };
 
-  private removeUserFromRoom = (userUuid: string) => {
-    console.log(`removeUserFromRoom(${userUuid})`);
-    const currentRoomUuid = this.usersCurrentRoom[userUuid];
-    delete this.usersCurrentRoom[userUuid];
-    this.roomsWithUsers[currentRoomUuid] = (
-      this.roomsWithUsers[currentRoomUuid] ?? []
-    ).filter((existingUserUuid) => existingUserUuid !== userUuid);
-  };
-
-  private TopicHandlers: { [T in Topic]: (arg: TopicTypeMap[T]) => void } = {
-    LOGIN: (args) => {
+    this.eventDistributor.register("LOGIN", (args) => {
       if (this.users[args.playerUuid]) {
         console.error("User is already logged in");
         return;
@@ -61,45 +51,35 @@ class Engine {
         uuid: args.playerUuid,
         username: args.playerUuid,
       };
-      this.addUserToRoom(args.playerUuid, TownSquare.uuid);
+      addUserToRoom(args.playerUuid, TownSquare.uuid);
 
       this.options.eventSender(
         "LOGIN",
         [...this.roomsWithUsers[TownSquare.uuid], args.playerUuid],
         { playerUuid: args.playerUuid }
       );
-    },
+    });
 
-    LOGOUT: (args) => {
+    this.eventDistributor.register("LOGOUT", (args) => {
       if (!this.users[args.playerUuid]) {
         console.error("User is not logged in");
         return;
       }
 
       const playerCurrentRoom = this.usersCurrentRoom[args.playerUuid];
-      this.removeUserFromRoom(args.playerUuid);
+      removeUserFromRoom(args.playerUuid);
       this.options.eventSender(
         "LOGOUT",
         [...this.roomsWithUsers[playerCurrentRoom], args.playerUuid],
         { playerUuid: args.playerUuid }
       );
-    },
-  };
+    });
+  }
 
-  handleMessage = (topic: Topic, dataString: string) => {
-    try {
-      const argsValidator = TopicValidators[topic];
-      const args = argsValidator(dataString);
-      this.TopicHandlers[topic](args);
-    } catch (e) {
-      if (isDecodeError(e)) {
-        console.error(dataString);
-        console.error("Decode error!");
-        console.error(JSON.stringify(e, null, 2));
-      } else {
-        console.error("Unexpected error: " + format(e));
-      }
-    }
+  onMessage = (message: string) => {
+    const input = parseInput(message);
+    if (input) this.eventDistributor.dispatch(input.topic, input.payload);
+    else console.error(`unparseable message "${message}"`);
   };
 }
 

@@ -1,6 +1,6 @@
 import express from "express";
 import ws from "ws";
-import Engine, { EventSender, isTopic } from "./engine/engine";
+import Engine, { EventSender } from "./engine/engine";
 
 const app = express();
 
@@ -41,22 +41,7 @@ wsServer.on("connection", (socket) => {
       return;
     }
 
-    const [topic, dataString] = message.split(" ", 2);
-    if (!isTopic(topic)) {
-      console.error(`Unsupported topic: ${topic}`);
-      return;
-    }
-
-    console.log(`[receive ${topic}]`);
-    if (topic === "LOGIN" || topic === "LOGOUT") {
-      const data = JSON.parse(dataString);
-      const playerUuid = data.playerUuid;
-      playerSockets =
-        topic === "LOGIN"
-          ? [...playerSockets, { playerUuid, socket }]
-          : playerSockets.filter((entry) => entry.playerUuid !== playerUuid);
-    }
-    engine.handleMessage(topic, dataString);
+    engine.onMessage(message);
   });
 });
 

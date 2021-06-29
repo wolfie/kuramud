@@ -1,0 +1,20 @@
+{
+  "name": "kuramud-common",
+  "private": true,
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "fp-ts": "^2.10.5",
+    "io-ts": "^2.2.16"
+  },
+  "devDependencies": {
+    "typescript": "^4.3.4"
+  }
+}

@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useEffect } from "react";
-
-type Topic = "LOGIN" | "LOGOUT"; // TODO: use shared library between server/client
+import type { Topic } from "kuramud-common";
 
 export type TopicHandler = (payload: Record<string, unknown>) => void;
 export type TopicHandlerRegistration = (
