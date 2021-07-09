@@ -1,11 +1,17 @@
-import { ClientToServerPayloadType, Topic } from "kuramud-common";
+import {
+  ClientToServerPayloadType,
+  ClientToServerTopic,
+  ServerToClientTopic,
+} from "kuramud-common";
 
-export type TopicHandler<T extends Topic> = (
+type AnyTopic = ServerToClientTopic | ClientToServerTopic;
+
+export type TopicHandler<T extends AnyTopic> = (
   payload: ClientToServerPayloadType<T>,
   sourcePlayerUuid: string
 ) => void;
 
-export type TopicHandlerEntry<T extends Topic> = {
+export type TopicHandlerEntry<T extends AnyTopic> = {
   topic: T;
   handler: TopicHandler<T>;
 };
@@ -13,7 +19,10 @@ export type TopicHandlerEntry<T extends Topic> = {
 export class ServerEventDistributor {
   private topicHandlers: TopicHandlerEntry<any>[] = [];
 
-  public register = <T extends Topic>(topic: T, handler: TopicHandler<T>) => {
+  public register = <T extends AnyTopic>(
+    topic: T,
+    handler: TopicHandler<T>
+  ) => {
     const handlerEntry = { topic, handler };
     this.topicHandlers.push(handlerEntry as any);
     return () => {
@@ -24,7 +33,7 @@ export class ServerEventDistributor {
     };
   };
 
-  public dispatch = <T extends Topic>(
+  public dispatch = <T extends AnyTopic>(
     topic: T,
     payload: ClientToServerPayloadType<T>,
     sourcePlayerUuid: string

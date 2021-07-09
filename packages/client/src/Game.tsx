@@ -1,17 +1,17 @@
 import React from "react";
 import useWebsocket, { gatherForCleanup } from "./useWebsocket";
 import { useEffect } from "react";
+import styled from "styled-components";
 import Room from "./components/Room";
 import Controls from "./components/Controls";
 import SplitLayout from "./components/SplitLayout";
 import Messages from "./components/Messages";
-import styled from "styled-components";
+import DevControls from "./DevControls";
 
 const Container = styled.div`
-  height: 100%;
-  width: 100%;
   background-color: black;
   color: white;
+  width: 100%;
 `;
 
 type GameProps = {
@@ -39,35 +39,33 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
     [hasRegisteredWithServer, playerUuid, ws.connected]
   );
 
-  useEffect(
-    () =>
-      gatherForCleanup([
-        ws.on("LOGIN", (payload, send) => {
-          if (payload.playerUuid === playerUuid) {
-            setHasRegisteredWithServer(true);
-            appendMessage(`LOGIN: you`);
-            send("LOOK", undefined);
-          } else {
-            appendMessage(`LOGIN: ${payload.playerUuid}`);
-          }
-        }),
+  useEffect(() => {
+    console.log("plaueruuid or ws changed");
+    return gatherForCleanup([
+      ws.on("LOGIN", (payload, send) => {
+        if (payload.playerUuid === playerUuid) {
+          setHasRegisteredWithServer(true);
+          appendMessage(`LOGIN: you`);
+          send("LOOK", undefined);
+        } else {
+          appendMessage(`LOGIN: ${payload.playerUuid}`);
+        }
+      }),
 
-        ws.on("LOGOUT", (payload) => {
-          if (payload.playerUuid === playerUuid) {
-            setHasRegisteredWithServer(false);
-            appendMessage(`LOGOUT: you`);
-          } else {
-            appendMessage(`LOGOUT: ${payload.playerUuid}`);
-          }
-        }),
-      ]),
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [playerUuid]
-  );
+      ws.on("LOGOUT", (payload) => {
+        if (payload.playerUuid === playerUuid) {
+          setHasRegisteredWithServer(false);
+          appendMessage(`LOGOUT: you`);
+        } else {
+          appendMessage(`LOGOUT: ${payload.playerUuid}`);
+        }
+      }),
+    ]);
+  }, [playerUuid, ws]);
 
   return (
     <Container>
+      <DevControls />
       <SplitLayout
         size={{ second: 300 }}
         layout={"columns"}

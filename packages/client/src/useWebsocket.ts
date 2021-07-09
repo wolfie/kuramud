@@ -2,56 +2,60 @@ import * as React from "react";
 import { useEffect } from "react";
 import type {
   ClientToServerPayloadType,
+  ClientToServerTopic,
   ServerToClientPayloadType,
-  Topic,
+  ServerToClientTopic,
 } from "kuramud-common";
 
 const BACKEND_URL = "ws://localhost:8000";
 
-export type SendTopicData = <T extends Topic>(
+export type SendTopicData = <T extends ClientToServerTopic>(
   topic: T,
   payload: ClientToServerPayloadType<T>
 ) => void;
 
 export const gatherForCleanup = (fns: Array<() => void>) => () =>
-  fns.forEach((fn) => fn());
+  fns.forEach((fn) => {
+    console.log("CLEANUP!");
+    fn();
+  });
 
-type Handler<T extends Topic> = (
+type Handler<T extends ServerToClientTopic> = (
   payload: ServerToClientPayloadType<T>,
   send: SendTopicData
 ) => void;
 
-type HandlerEntry<T extends Topic> = {
+type HandlerEntry<T extends ServerToClientTopic> = {
   topic: T;
   handler: Handler<T>;
 };
 
-type WebsocketHook = {
-  on: <T extends Topic>(topic: T, handler: Handler<T>) => () => void;
+export type WebsocketHook = {
+  on: <T extends ServerToClientTopic>(
+    topic: T,
+    handler: Handler<T>
+  ) => () => void;
 } & ({ connected: false } | { connected: true; send: SendTopicData });
 
 const createSend =
-  (websocket: WebSocket | undefined, connected: boolean): SendTopicData =>
+  (websocket: WebSocket, connected: boolean): SendTopicData =>
   (topic, payload: any) => {
     const message =
       typeof payload !== "undefined"
         ? `${topic} ${JSON.stringify(payload)}`
         : topic;
     console.log(`[send ${message}]`);
-    if (!websocket) console.error("unexpected no websocket set");
-    else if (!connected) console.error("unexpected websocket is not connected");
+    if (!connected) console.error("unexpected websocket is not connected");
     else websocket.send(message);
   };
 
 const useWebsocket = (): WebsocketHook => {
-  const [websocket, setWebsocket] = React.useState<WebSocket>();
+  const [websocket] = React.useState(() => new WebSocket(BACKEND_URL));
   const [connected, setConnected] = React.useState(false);
   const [handlers, setHandlers] = React.useState<Array<HandlerEntry<any>>>([]);
 
   useEffect(() => {
-    console.log("make websocket");
-    const websocket = new WebSocket(BACKEND_URL);
-    setWebsocket(websocket);
+    console.log("init websocket");
 
     websocket.onopen = () => {
       console.log("connected");
@@ -60,20 +64,16 @@ const useWebsocket = (): WebsocketHook => {
     websocket.onclose = () => {
       console.log("closed");
       setConnected(false);
-      setWebsocket(undefined);
     };
     websocket.onerror = (e) => {
       console.error(e);
       setConnected(false);
-      setWebsocket(undefined);
       websocket.close();
     };
     return () => websocket.close();
-  }, []);
+  }, [websocket]);
 
   useEffect(() => {
-    if (!websocket) return;
-
     const send = createSend(websocket, connected);
 
     websocket.onmessage = (e) => {
@@ -91,16 +91,19 @@ const useWebsocket = (): WebsocketHook => {
     };
   }, [handlers, websocket, connected]);
 
-  return {
-    ...(connected
-      ? { connected: true, send: createSend(websocket, connected) }
-      : { connected: false }),
-    on: (topic, handler) => {
-      const newEntry: HandlerEntry<typeof topic> = { topic, handler };
-      setHandlers((handlers) => [...handlers, newEntry]);
-      return () => setHandlers(filterNotEqual(newEntry));
-    },
-  };
+  return React.useMemo(
+    () => ({
+      ...(connected
+        ? { connected: true, send: createSend(websocket, connected) }
+        : { connected: false }),
+      on: (topic, handler) => {
+        const newEntry: HandlerEntry<typeof topic> = { topic, handler };
+        setHandlers((handlers) => [...handlers, newEntry]);
+        return () => setHandlers(filterNotEqual(newEntry));
+      },
+    }),
+    [websocket, connected]
+  );
 };
 
 const filter =

@@ -18,7 +18,7 @@ const addPlayerSocketSpecial = (playerUuid: UUID, socket: ws) => {
     console.error(`Player ${playerUuid} already has a socket`);
   } else {
     playerSockets = [...playerSockets, { playerUuid, socket }];
-    console.log(`added socket for ${playerUuid}`);
+    console.log(`added socket for ${playerUuid} (now ${playerSockets.length})`);
   }
 };
 
@@ -61,7 +61,9 @@ wsServer.on("connection", (socket) => {
 
       engine.logoutPlayer(found.playerUuid);
     } else {
-      console.info("closing socket for unknown player");
+      console.info(
+        `closing socket for unknown player (${playerSockets.length} left)`
+      );
     }
   });
   socket.on("open", () => {
@@ -78,6 +80,7 @@ wsServer.on("connection", (socket) => {
     )?.playerUuid;
 
     const [rawTopic, rawPayload] = message.split(" ", 2);
+    console.log({ rawTopic, rawPayload });
     const result = decode(ClientToServer, {
       topic: rawTopic,
       payload: rawPayload ? JSON.parse(rawPayload) : undefined,
@@ -96,6 +99,13 @@ wsServer.on("connection", (socket) => {
           removePlayerSocketSpecial(sourcePlayerUuid);
           engine.logoutPlayer(sourcePlayerUuid);
         }
+        break;
+      case "DEV_CLEANUP":
+        // this seems to be needed because of react HMR doing weird things with websockets
+        socket.close();
+        playerSockets.forEach((e) => e.socket.close());
+        playerSockets = [];
+        console.log("DEV CLEANUP");
         break;
       default:
         sourcePlayerUuid

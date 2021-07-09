@@ -17,16 +17,17 @@ export const ClientToServer = t.union([
   topicPayload("LOGIN", PlayerUuidInfo),
   topicPayload("LOGOUT", t.void),
   topicPayload("LOOK", t.void),
+  topicPayload("DEV_CLEANUP", t.void),
 ]);
 
-export type Topic = t.TypeOf<typeof ClientToServer>["topic"];
+export type ClientToServerTopic = t.TypeOf<typeof ClientToServer>["topic"];
 
-export type ClientToServerPayloadType<T extends Topic> = Extract<
+export type ClientToServerPayloadType<T extends ClientToServerTopic> = Extract<
   t.TypeOf<typeof ClientToServer>,
   { topic: T }
 >["payload"];
 
-export type ServerToClientPayloadType<T extends Topic> = Extract<
+export type ServerToClientPayloadType<T extends ServerToClientTopic> = Extract<
   t.TypeOf<typeof ServerToClient>,
   { topic: T }
 >["payload"];
@@ -38,6 +39,8 @@ export const ServerToClient = t.union([
     t.type({ description: t.string, exits: t.array(Direction) }, "LOOK")
   ),
 ]);
+
+export type ServerToClientTopic = t.TypeOf<typeof ServerToClient>["topic"];
 
 export const decode = <T extends t.Any>(type: T, obj: unknown): t.TypeOf<T> => {
   const result = type.decode(obj);

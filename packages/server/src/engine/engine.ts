@@ -1,15 +1,14 @@
-import { KeyofType } from "io-ts";
 import { UUID } from "io-ts-types";
 import {
   ClientToServerPayloadType,
+  ClientToServerTopic,
   ServerToClientPayloadType,
-  Topic,
+  ServerToClientTopic,
 } from "kuramud-common";
-import { Room } from "../rooms/room";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
 
-export type EventSender = <T extends Topic>(
+export type EventSender = <T extends ServerToClientTopic>(
   topic: T,
   playerUuids: string[],
   payload: ServerToClientPayloadType<T>
@@ -91,7 +90,7 @@ class Engine {
     });
   };
 
-  onMessage = <T extends Topic>(
+  onMessage = <T extends ClientToServerTopic>(
     topic: T,
     payload: ClientToServerPayloadType<T>,
     sourcePlayerUuid: string

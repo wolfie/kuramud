@@ -3,8 +3,6 @@ import { CSSProperties } from "react";
 import styled from "styled-components";
 
 const SplitLayoutRoot = styled.div<{ $layout: "columns" | "rows" }>`
-  height: 100%;
-  width: 100%;
   display: flex;
   justify-content: space-between;
   flex-direction: ${(p) => (p.$layout === "columns" ? "row" : "column")};
