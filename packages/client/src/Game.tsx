@@ -42,11 +42,11 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
   useEffect(
     () =>
       gatherForCleanup([
-        ws.on("LOGIN", (payload) => {
+        ws.on("LOGIN", (payload, send) => {
           if (payload.playerUuid === playerUuid) {
             setHasRegisteredWithServer(true);
             appendMessage(`LOGIN: you`);
-            ws.connected && ws.send("LOOK", undefined);
+            send("LOOK", undefined);
           } else {
             appendMessage(`LOGIN: ${payload.playerUuid}`);
           }

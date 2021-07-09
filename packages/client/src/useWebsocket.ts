@@ -16,7 +16,10 @@ export type SendTopicData = <T extends Topic>(
 export const gatherForCleanup = (fns: Array<() => void>) => () =>
   fns.forEach((fn) => fn());
 
-type Handler<T extends Topic> = (payload: ServerToClientPayloadType<T>) => void;
+type Handler<T extends Topic> = (
+  payload: ServerToClientPayloadType<T>,
+  send: SendTopicData
+) => void;
 
 type HandlerEntry<T extends Topic> = {
   topic: T;
@@ -26,6 +29,19 @@ type HandlerEntry<T extends Topic> = {
 type WebsocketHook = {
   on: <T extends Topic>(topic: T, handler: Handler<T>) => () => void;
 } & ({ connected: false } | { connected: true; send: SendTopicData });
+
+const createSend =
+  (websocket: WebSocket | undefined, connected: boolean): SendTopicData =>
+  (topic, payload: any) => {
+    const message =
+      typeof payload !== "undefined"
+        ? `${topic} ${JSON.stringify(payload)}`
+        : topic;
+    console.log(`[send ${message}]`);
+    if (!websocket) console.error("unexpected no websocket set");
+    else if (!connected) console.error("unexpected websocket is not connected");
+    else websocket.send(message);
+  };
 
 const useWebsocket = (): WebsocketHook => {
   const [websocket, setWebsocket] = React.useState<WebSocket>();
@@ -58,6 +74,8 @@ const useWebsocket = (): WebsocketHook => {
   useEffect(() => {
     if (!websocket) return;
 
+    const send = createSend(websocket, connected);
+
     websocket.onmessage = (e) => {
       if (typeof e.data !== "string") {
         console.info(`unexpected websocket data type: ${typeof e.data}`);
@@ -69,20 +87,14 @@ const useWebsocket = (): WebsocketHook => {
 
       handlers
         .filter((entry) => entry.topic === topic)
-        .forEach((entry) => entry.handler(JSON.parse(payload)));
+        .forEach((entry) => entry.handler(JSON.parse(payload), send));
     };
-  }, [handlers, websocket]);
-
-  const send: SendTopicData = (topic, payload: any) => {
-    const message = `${topic} ${JSON.stringify(payload)}`;
-    console.log(`[send ${message}]`);
-    if (!websocket) console.error("unexpected no websocket set");
-    else if (!connected) console.error("unexpected websocket is not connected");
-    else websocket.send(message);
-  };
+  }, [handlers, websocket, connected]);
 
   return {
-    ...(connected ? { connected: true, send } : { connected: false }),
+    ...(connected
+      ? { connected: true, send: createSend(websocket, connected) }
+      : { connected: false }),
     on: (topic, handler) => {
       const newEntry: HandlerEntry<typeof topic> = { topic, handler };
       setHandlers((handlers) => [...handlers, newEntry]);
