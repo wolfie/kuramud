@@ -3,13 +3,13 @@ import useWebsocket from "./useWebsocket";
 //type Direction = "N" | "S" | "W" | "E";
 
 const useWebsocketApi = () => {
-  const ws = useWebsocket("ws://localhost:8000");
+  const ws = useWebsocket();
 
   return {
     login: (playerUuid: string) =>
-      ws.connected && ws.send("LOGIN", { playerUuid }),
-    logout: (playerUuid: string) =>
-      ws.connected && ws.send("LOGOUT", { playerUuid }),
+      ws.connected && ws.send("LOGIN", { playerUuid: playerUuid as any }),
+    logout: () => ws.connected && ws.send("LOGOUT", undefined),
+    look: () => ws.connected && ws.send("LOOK", undefined),
   };
 };
 

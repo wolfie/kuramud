@@ -1,10 +1,14 @@
-import { v4 as uuid } from "uuid";
 import { Room } from "../room";
+import { generateExits } from "../room.util";
 
 const TownSquare: Room = {
-  uuid: uuid(),
   description: "This is the town square",
-  exits: [],
+  exits: generateExits(
+    ["E", "EAST"],
+    ["N", "NORTH"],
+    ["W", "WEST"],
+    ["S", "SOUTH"]
+  ),
 };
 
 export default TownSquare;

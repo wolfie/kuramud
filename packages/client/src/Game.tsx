@@ -28,12 +28,12 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
     setMessages((messages) => [msg, ...messages].slice(0, 10));
   };
 
-  const ws = useWebsocket("ws://localhost:8000");
+  const ws = useWebsocket();
 
   useEffect(
     () => {
       if (hasRegisteredWithServer || !ws.connected) return;
-      ws.send("LOGIN", { playerUuid });
+      ws.send("LOGIN", { playerUuid: playerUuid as any });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [hasRegisteredWithServer, playerUuid, ws.connected]
@@ -46,6 +46,7 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
           if (payload.playerUuid === playerUuid) {
             setHasRegisteredWithServer(true);
             appendMessage(`LOGIN: you`);
+            ws.connected && ws.send("LOOK", undefined);
           } else {
             appendMessage(`LOGIN: ${payload.playerUuid}`);
           }
@@ -61,6 +62,7 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
         }),
       ]),
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [playerUuid]
   );
 

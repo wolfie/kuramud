@@ -1,12 +1,18 @@
+import { KeyofType } from "io-ts";
+import { UUID } from "io-ts-types";
+import {
+  ClientToServerPayloadType,
+  ServerToClientPayloadType,
+  Topic,
+} from "kuramud-common";
 import { Room } from "../rooms/room";
-import TownSquare from "../rooms/StartWorld/TownSquare";
+import * as StartWorld from "../rooms/StartWorld";
+import { ServerEventDistributor } from "./ServerEventDistributor";
 
-import { Topic, EventDistributor, parseInput } from "kuramud-common";
-
-export type EventSender = (
-  topic: Topic,
+export type EventSender = <T extends Topic>(
+  topic: T,
   playerUuids: string[],
-  data: Record<string, unknown>
+  payload: ServerToClientPayloadType<T>
 ) => void;
 
 type User = {
@@ -14,47 +20,38 @@ type User = {
   username: string;
 };
 
+const mapObj = <K extends string, V, R>(
+  obj: Record<K, V>,
+  mapper: (value: V) => R
+): Record<K, R> =>
+  Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [k, mapper(v as V)])
+  ) as Record<K, R>;
+
+type UserUUID = string;
+
 class Engine {
-  private rooms: Record<string, Room> = [TownSquare].reduce(
-    (acc, room) => ({ ...acc, [room.uuid]: room }),
-    {}
-  );
+  private rooms = StartWorld.Rooms;
   private users: Record<string, User> = {};
-  private roomsWithUsers: Record<string, string[]> = {};
-  private usersCurrentRoom: Record<string, string> = {};
-  private eventDistributor = new EventDistributor();
+  private roomsWithUsers: Record<StartWorld.ValidRoomId, UserUUID[]> = mapObj(
+    StartWorld.Rooms,
+    () => []
+  );
+  private usersCurrentRoom: Record<UserUUID, StartWorld.ValidRoomId> = {};
+  private eventDistributor = new ServerEventDistributor();
 
   constructor(private options: { eventSender: EventSender }) {
-    const addUserToRoom = (userUuid: string, roomUuid: string) => {
-      console.log(`addUserToRoom(${userUuid}, ${roomUuid})`);
-      const currentUsersInRoom = this.roomsWithUsers[roomUuid] ?? [];
-      this.roomsWithUsers[roomUuid] = [...currentUsersInRoom, userUuid];
-      this.usersCurrentRoom[userUuid] = roomUuid;
-    };
-
-    this.eventDistributor.register("LOGIN", (args) => {
-      if (this.users[args.playerUuid]) {
-        console.error("User is already logged in");
-        return;
-      }
-
-      this.users[args.playerUuid] = {
-        uuid: args.playerUuid,
-        username: args.playerUuid,
-      };
-      addUserToRoom(args.playerUuid, TownSquare.uuid);
-
-      this.options.eventSender(
-        "LOGIN",
-        [...this.roomsWithUsers[TownSquare.uuid], args.playerUuid],
-        { playerUuid: args.playerUuid }
-      );
+    this.eventDistributor.register("LOOK", (_, player) => {
+      console.log("LOOK");
     });
-
-    this.eventDistributor.register("LOGOUT", (args) =>
-      this.logoutPlayer(args.playerUuid)
-    );
   }
+
+  private addUserToRoom = (userUuid: UUID, roomId: StartWorld.ValidRoomId) => {
+    console.log(`addUserToRoom(${userUuid}, ${roomId})`);
+    const currentUsersInRoom = this.roomsWithUsers[roomId] ?? [];
+    this.roomsWithUsers[roomId] = [...currentUsersInRoom, userUuid];
+    this.usersCurrentRoom[userUuid] = roomId;
+  };
 
   private removeUserFromRoom = (userUuid: string) => {
     console.log(`removeUserFromRoom(${userUuid})`);
@@ -65,7 +62,23 @@ class Engine {
     ).filter((existingUserUuid) => existingUserUuid !== userUuid);
   };
 
-  logoutPlayer = (playerUuid: string) => {
+  loginPlayer = (playerUuid: UUID) => {
+    if (this.users[playerUuid]) {
+      console.error("User is already logged in");
+      return;
+    }
+
+    this.users[playerUuid] = {
+      uuid: playerUuid,
+      username: playerUuid,
+    };
+    this.addUserToRoom(playerUuid, "TOWNSQUARE");
+    this.options.eventSender("LOGIN", this.roomsWithUsers["TOWNSQUARE"], {
+      playerUuid,
+    });
+  };
+
+  logoutPlayer = (playerUuid: UUID) => {
     if (!this.users[playerUuid]) {
       console.error("User is not logged in");
       return;
@@ -73,17 +86,17 @@ class Engine {
 
     const playerCurrentRoom = this.usersCurrentRoom[playerUuid];
     this.removeUserFromRoom(playerUuid);
-    this.options.eventSender(
-      "LOGOUT",
-      [...this.roomsWithUsers[playerCurrentRoom], playerUuid],
-      { playerUuid: playerUuid }
-    );
+    this.options.eventSender("LOGOUT", this.roomsWithUsers[playerCurrentRoom], {
+      playerUuid,
+    });
   };
 
-  onMessage = (message: string) => {
-    const input = parseInput(message);
-    if (input) this.eventDistributor.dispatch(input.topic, input.payload);
-    else console.error(`unparseable message "${message}"`);
+  onMessage = <T extends Topic>(
+    topic: T,
+    payload: ClientToServerPayloadType<T>,
+    sourcePlayerUuid: string
+  ) => {
+    this.eventDistributor.dispatch(topic, payload, sourcePlayerUuid);
   };
 }
 

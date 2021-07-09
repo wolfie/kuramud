@@ -6,7 +6,8 @@
   ],
   "scripts": {
     "start": "tsc-watch --noClear -p ./packages/common/tsconfig.json --onSuccess \"yarn start:clientAndServer\"",
-    "start:clientAndServer": "concurrently -n server,client \"yarn workspace kuramud-server start\" \"yarn workspace kuramud-client start\""
+    "start:clientAndServer": "concurrently -n server,client \"yarn workspace kuramud-server start\" \"yarn workspace kuramud-client start\"",
+    "clean": "yarn workspace kuramud-common clean"
   },
   "dependencies": {
     "concurrently": "^6.2.0",

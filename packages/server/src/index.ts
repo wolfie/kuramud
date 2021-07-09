@@ -1,14 +1,16 @@
 import express from "express";
 import ws from "ws";
-import { TopicDecoderMap } from "kuramud-common";
-import Engine, { EventSender } from "./engine/engine";
+import { ClientToServer, decode } from "kuramud-common";
+import Engine from "./engine/engine";
+import { UUID } from "io-ts-types";
+
+const PORT = 8000;
 
 const app = express();
 
-let playerSockets: { playerUuid: string; socket: ws }[] = [];
+let playerSockets: { playerUuid: UUID; socket: ws }[] = [];
 
-const addPlayerSocketSpecial = (payload: string, socket: ws) => {
-  const { playerUuid } = TopicDecoderMap["LOGIN"](payload);
+const addPlayerSocketSpecial = (playerUuid: UUID, socket: ws) => {
   const alreadyHasASocket = playerSockets.some(
     (entry) => entry.playerUuid === playerUuid
   );
@@ -20,8 +22,7 @@ const addPlayerSocketSpecial = (payload: string, socket: ws) => {
   }
 };
 
-const removePlayerSocketSpecial = (payload: string) => {
-  const { playerUuid } = TopicDecoderMap["LOGOUT"](payload);
+const removePlayerSocketSpecial = (playerUuid: string) => {
   const playerSocketExists = playerSockets.some(
     (entry) => entry.playerUuid === playerUuid
   );
@@ -35,19 +36,18 @@ const removePlayerSocketSpecial = (payload: string) => {
   }
 };
 
-const eventSender: EventSender = (topic, playerUuids, data) => {
-  playerSockets
-    .filter(({ playerUuid }) => playerUuids.includes(playerUuid))
-    .forEach(({ socket }) => {
-      console.log(`[send ${topic}]`);
-      socket.send(
-        `${topic} ${JSON.stringify(data)}`,
-        (e) => e && console.error(e)
-      );
-    });
-};
-
-const engine = new Engine({ eventSender });
+const engine = new Engine({
+  eventSender: (topic, playerUuids, payload: any) =>
+    playerSockets
+      .filter(({ playerUuid }) => playerUuids.includes(playerUuid))
+      .forEach(({ socket, playerUuid }) => {
+        console.log(`[send ${topic} to ${playerUuid}]`);
+        socket.send(
+          `${topic} ${JSON.stringify(payload)}`,
+          (e) => e && console.error(e)
+        );
+      }),
+});
 
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on("connection", (socket) => {
@@ -73,18 +73,41 @@ wsServer.on("connection", (socket) => {
       return;
     }
 
-    if (message.startsWith("LOGIN ")) {
-      addPlayerSocketSpecial(message.substr("LOGIN ".length), socket);
-    } else if (message.startsWith("LOGOUT ")) {
-      removePlayerSocketSpecial(message.substr("LOGOUT ".length));
-    }
+    const sourcePlayerUuid = playerSockets.find(
+      (entry) => entry.socket === socket
+    )?.playerUuid;
 
-    engine.onMessage(message);
+    const [rawTopic, rawPayload] = message.split(" ", 2);
+    const result = decode(ClientToServer, {
+      topic: rawTopic,
+      payload: rawPayload ? JSON.parse(rawPayload) : undefined,
+    });
+
+    switch (result.topic) {
+      case "LOGIN":
+        const playerUuid = result.payload.playerUuid;
+        addPlayerSocketSpecial(playerUuid, socket);
+        engine.loginPlayer(playerUuid);
+        break;
+      case "LOGOUT":
+        if (!sourcePlayerUuid)
+          console.error("Unexpected LOGOUT from a player not found");
+        else {
+          removePlayerSocketSpecial(sourcePlayerUuid);
+          engine.logoutPlayer(sourcePlayerUuid);
+        }
+        break;
+      default:
+        sourcePlayerUuid
+          ? engine.onMessage(result.topic, result.payload, sourcePlayerUuid)
+          : console.error("Got message from a socket of a unregistered player");
+        break;
+    }
   });
 });
 
-const server = app.listen(8000, () => {
-  console.log("server started!");
+const server = app.listen(PORT, () => {
+  console.log(`server started on port ${PORT}!`);
 });
 server.on("upgrade", (request, socket, head) =>
   wsServer.handleUpgrade(request, socket, head, (socket) => {
