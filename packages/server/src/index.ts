@@ -3,6 +3,7 @@ import ws from "ws";
 import { ClientToServer, decode } from "kuramud-common";
 import Engine from "./engine/engine";
 import { UUID } from "io-ts-types";
+import WebSocket from "ws";
 
 const PORT = 8000;
 
@@ -42,6 +43,10 @@ const engine = new Engine({
       .filter(({ playerUuid }) => playerUuids.includes(playerUuid))
       .forEach(({ socket, playerUuid }) => {
         console.log(`[send ${topic} to ${playerUuid}]`);
+        if (socket.readyState !== WebSocket.OPEN) {
+          console.warn("socket is not open");
+          return;
+        }
         socket.send(
           `${topic} ${JSON.stringify(payload)}`,
           (e) => e && console.error(e)

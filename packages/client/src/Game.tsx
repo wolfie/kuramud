@@ -5,6 +5,7 @@ import Room from "./components/Room";
 import Controls from "./components/Controls";
 import SplitLayout from "./components/SplitLayout";
 import Messages from "./components/Messages";
+import ApiConnectionGuard from "./components/ApiConnectionGuard";
 import DevControls from "./DevControls";
 import WebsocketApi from "./WebsocketApi";
 import { ServerToClientPayloadType } from "kuramud-common";
@@ -22,11 +23,7 @@ type GameProps = {
   playerUuid: string;
 };
 const Game: React.FC<GameProps> = ({ playerUuid }) => {
-  const [
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _apiIsConnected,
-    setApiIsConnected,
-  ] = React.useState(false);
+  const [apiIsConnected, setApiIsConnected] = React.useState(false);
   const [hasRegisteredWithServer, setHasRegisteredWithServer] =
     React.useState(false);
   const [messages, setMessages] = React.useState<string[]>([]);
@@ -86,27 +83,31 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
 
   return (
     <SharedWebsocketContext.Provider value={api}>
-      <Container>
-        <DevControls />
-        <SplitLayout
-          size={{ second: 300 }}
-          layout={"columns"}
-          first={() => (
-            <SplitLayout
-              size={{ second: 300 }}
-              layout={"rows"}
-              first={() => (
-                <Room
-                  description={roomDescription.description}
-                  exits={roomDescription.exits}
-                />
-              )}
-              second={() => <Messages messages={messages} />}
-            />
-          )}
-          second={() => <Controls enabledDirections={roomDescription.exits} />}
-        />
-      </Container>
+      <ApiConnectionGuard isConnected={apiIsConnected}>
+        <Container>
+          <DevControls />
+          <SplitLayout
+            size={{ second: 300 }}
+            layout={"columns"}
+            first={() => (
+              <SplitLayout
+                size={{ second: 300 }}
+                layout={"rows"}
+                first={() => (
+                  <Room
+                    description={roomDescription.description}
+                    exits={roomDescription.exits}
+                  />
+                )}
+                second={() => <Messages messages={messages} />}
+              />
+            )}
+            second={() => (
+              <Controls enabledDirections={roomDescription.exits} />
+            )}
+          />
+        </Container>
+      </ApiConnectionGuard>
     </SharedWebsocketContext.Provider>
   );
 };
