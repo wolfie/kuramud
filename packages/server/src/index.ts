@@ -17,7 +17,7 @@ const addPlayerSocketSpecial = (playerUuid: UUID, socket: ws) => {
   if (alreadyHasASocket) {
     console.error(`Player ${playerUuid} already has a socket`);
   } else {
-    playerSockets = [...playerSockets, { playerUuid, socket }];
+    playerSockets.push({ playerUuid, socket });
     console.log(`added socket for ${playerUuid} (now ${playerSockets.length})`);
   }
 };
@@ -51,6 +51,7 @@ const engine = new Engine({
 
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on("connection", (socket) => {
+  console.log("CONNECTION");
   socket.on("close", () => {
     const found = playerSockets.find((entry) => entry.socket === socket);
     if (found) {
@@ -74,6 +75,7 @@ wsServer.on("connection", (socket) => {
       console.error(`Unsupported message datatype ${typeof message}`);
       return;
     }
+    console.log(`Readystate: ${socket.readyState}`);
 
     const sourcePlayerUuid = playerSockets.find(
       (entry) => entry.socket === socket
@@ -102,10 +104,13 @@ wsServer.on("connection", (socket) => {
         break;
       case "DEV_CLEANUP":
         // this seems to be needed because of react HMR doing weird things with websockets
-        socket.close();
-        playerSockets.forEach((e) => e.socket.close());
-        playerSockets = [];
+        playerSockets.forEach((e) => {
+          console.log("closing " + e.socket);
+          e.socket.close(1012); // 1012 = Service Restart
+        });
+
         console.log("DEV CLEANUP");
+        console.log(playerSockets.length);
         break;
       default:
         sourcePlayerUuid

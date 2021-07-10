@@ -1,6 +1,7 @@
 import * as React from "react";
+import { useContext } from "react";
 import styled from "styled-components";
-import useWebsocket from "./useWebsocket";
+import { SharedWebsocketContext } from "./Game";
 
 const Container = styled.div`
   background-color: red;
@@ -8,16 +9,13 @@ const Container = styled.div`
 `;
 
 const DevControls: React.FC = () => {
-  const ws = useWebsocket();
+  const api = useContext(SharedWebsocketContext);
 
   return (
     <Container>
       <button
-        onClick={() =>
-          ws.connected
-            ? ws.send("DEV_CLEANUP", undefined)
-            : console.error("Not connected")
-        }
+        disabled={!api.connected}
+        onClick={() => api.send("DEV_CLEANUP", undefined)}
       >
         Clear
       </button>

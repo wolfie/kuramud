@@ -1,7 +1,11 @@
 import React from "react";
 import { useEffect } from "react";
+import { Direction } from "kuramud-common";
 
-const Controls: React.FC = () => {
+type ControlsProps = {
+  enabledDirections: Direction[];
+};
+const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
   const walk = (str: string) => {
     console.log(`TODO WALK ${str}`);
   };
@@ -30,10 +34,30 @@ const Controls: React.FC = () => {
 
   return (
     <div>
-      <button onClick={() => walk("N")}>N</button>
-      <button onClick={() => walk("S")}>S</button>
-      <button onClick={() => walk("W")}>W</button>
-      <button onClick={() => walk("E")}>E</button>
+      <button
+        onClick={() => walk("N")}
+        disabled={!enabledDirections.includes("N")}
+      >
+        N
+      </button>
+      <button
+        onClick={() => walk("S")}
+        disabled={!enabledDirections.includes("S")}
+      >
+        S
+      </button>
+      <button
+        onClick={() => walk("W")}
+        disabled={!enabledDirections.includes("W")}
+      >
+        W
+      </button>
+      <button
+        onClick={() => walk("E")}
+        disabled={!enabledDirections.includes("E")}
+      >
+        E
+      </button>
     </div>
   );
 };

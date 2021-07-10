@@ -1,17 +1,12 @@
-import {
-  ClientToServerPayloadType,
-  ClientToServerTopic,
-  ServerToClientTopic,
-} from "kuramud-common";
+import { UUID } from "io-ts-types";
+import { ClientToServerPayloadType, ClientToServerTopic } from "kuramud-common";
 
-type AnyTopic = ServerToClientTopic | ClientToServerTopic;
-
-export type TopicHandler<T extends AnyTopic> = (
+export type TopicHandler<T extends ClientToServerTopic> = (
   payload: ClientToServerPayloadType<T>,
-  sourcePlayerUuid: string
+  sourcePlayerUuid: UUID
 ) => void;
 
-export type TopicHandlerEntry<T extends AnyTopic> = {
+export type TopicHandlerEntry<T extends ClientToServerTopic> = {
   topic: T;
   handler: TopicHandler<T>;
 };
@@ -19,7 +14,7 @@ export type TopicHandlerEntry<T extends AnyTopic> = {
 export class ServerEventDistributor {
   private topicHandlers: TopicHandlerEntry<any>[] = [];
 
-  public register = <T extends AnyTopic>(
+  public register = <T extends ClientToServerTopic>(
     topic: T,
     handler: TopicHandler<T>
   ) => {
@@ -33,10 +28,10 @@ export class ServerEventDistributor {
     };
   };
 
-  public dispatch = <T extends AnyTopic>(
+  public dispatch = <T extends ClientToServerTopic>(
     topic: T,
     payload: ClientToServerPayloadType<T>,
-    sourcePlayerUuid: string
+    sourcePlayerUuid: UUID
   ): void =>
     this.topicHandlers
       .filter((entry): entry is TopicHandlerEntry<T> => entry.topic === topic)

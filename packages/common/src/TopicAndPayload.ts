@@ -3,7 +3,8 @@ import * as tt from "io-ts-types";
 
 const PlayerUuidInfo = t.type({ playerUuid: tt.UUID });
 
-const Direction = t.union(
+export type Direction = t.TypeOf<typeof Direction>;
+export const Direction = t.union(
   [t.literal("N"), t.literal("E"), t.literal("S"), t.literal("W")],
   "Direction"
 );
@@ -16,7 +17,7 @@ const topicPayload = <TOPIC extends string, PAYLOAD extends t.Any>(
 export const ClientToServer = t.union([
   topicPayload("LOGIN", PlayerUuidInfo),
   topicPayload("LOGOUT", t.void),
-  topicPayload("LOOK", t.void),
+  topicPayload("LOOK_ROOM", t.void),
   topicPayload("DEV_CLEANUP", t.void),
 ]);
 
@@ -35,8 +36,8 @@ export const ServerToClient = t.union([
   topicPayload("LOGIN", PlayerUuidInfo),
   topicPayload("LOGOUT", PlayerUuidInfo),
   topicPayload(
-    "LOOK",
-    t.type({ description: t.string, exits: t.array(Direction) }, "LOOK")
+    "DESCRIBE_ROOM",
+    t.type({ description: t.string, exits: t.array(Direction) })
   ),
 ]);
 

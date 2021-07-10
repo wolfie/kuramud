@@ -40,8 +40,14 @@ class Engine {
   private eventDistributor = new ServerEventDistributor();
 
   constructor(private options: { eventSender: EventSender }) {
-    this.eventDistributor.register("LOOK", (_, player) => {
-      console.log("LOOK");
+    this.eventDistributor.register("LOOK_ROOM", (_, playerUuid) => {
+      const roomIdOfPlayer = this.usersCurrentRoom[playerUuid];
+      const roomOfPlayer = this.rooms[roomIdOfPlayer];
+
+      options.eventSender("DESCRIBE_ROOM", [playerUuid], {
+        description: roomOfPlayer.description,
+        exits: roomOfPlayer.exits.map((exit) => exit.direction),
+      });
     });
   }
 
@@ -93,7 +99,7 @@ class Engine {
   onMessage = <T extends ClientToServerTopic>(
     topic: T,
     payload: ClientToServerPayloadType<T>,
-    sourcePlayerUuid: string
+    sourcePlayerUuid: UUID
   ) => {
     this.eventDistributor.dispatch(topic, payload, sourcePlayerUuid);
   };
