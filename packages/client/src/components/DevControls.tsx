@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useContext } from "react";
 import styled from "styled-components";
-import { SharedWebsocketContext } from "./Game";
+import { SharedWebsocketContext } from "../Game";
 
 const Container = styled.div`
   background-color: red;

@@ -6,7 +6,7 @@ import Controls from "./components/Controls";
 import SplitLayout from "./components/SplitLayout";
 import Messages, { Message } from "./components/Messages";
 import ApiConnectionGuard from "./components/ApiConnectionGuard";
-import DevControls from "./DevControls";
+import DevControls from "./components/DevControls";
 import WebsocketApi from "./WebsocketApi";
 import { ServerToClientPayloadType } from "kuramud-common";
 
