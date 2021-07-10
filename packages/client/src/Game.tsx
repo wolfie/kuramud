@@ -4,7 +4,7 @@ import styled from "styled-components";
 import Room from "./components/Room";
 import Controls from "./components/Controls";
 import SplitLayout from "./components/SplitLayout";
-import Messages from "./components/Messages";
+import Messages, { Message } from "./components/Messages";
 import ApiConnectionGuard from "./components/ApiConnectionGuard";
 import DevControls from "./DevControls";
 import WebsocketApi from "./WebsocketApi";
@@ -26,14 +26,16 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
   const [apiIsConnected, setApiIsConnected] = React.useState(false);
   const [hasRegisteredWithServer, setHasRegisteredWithServer] =
     React.useState(false);
-  const [messages, setMessages] = React.useState<string[]>([]);
+  const [messages, setMessages] = React.useState<Message[]>([]);
   const [roomDescription, setRoomDescription] = React.useState<
     ServerToClientPayloadType<"DESCRIBE_ROOM">
   >({ description: "", exits: [] });
 
-  const appendMessage = (msg: string) => {
+  const appendMessage = (text: string) => {
     console.log("append");
-    setMessages((messages) => [msg, ...messages].slice(0, 10));
+    setMessages((messages) =>
+      [{ text, timestamp: Date.now() }, ...messages].slice(0, 10)
+    );
   };
 
   useEffect(() => {

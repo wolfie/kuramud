@@ -1,10 +1,12 @@
 import React from "react";
 
-type MessagesProps = { messages: string[] };
+export type Message = { text: string; timestamp: number };
+
+type MessagesProps = { messages: Message[] };
 const Messages: React.FC<MessagesProps> = ({ messages }) => (
   <ul>
-    {messages.map((msg) => (
-      <li key={Math.random()}>{msg}</li>
+    {messages.map(({ text, timestamp }) => (
+      <li key={timestamp}>{text}</li>
     ))}
   </ul>
 );
