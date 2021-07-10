@@ -1,14 +1,16 @@
 import React from "react";
 import { useEffect } from "react";
 import { Direction } from "kuramud-common";
+import { useContext } from "react";
+import { SharedWebsocketContext } from "../Game";
 
 type ControlsProps = {
   enabledDirections: Direction[];
 };
 const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
-  const walk = (str: string) => {
-    console.log(`TODO WALK ${str}`);
-  };
+  const api = useContext(SharedWebsocketContext);
+
+  const walk = (direction: Direction) => api.send("WALK", { direction });
 
   useEffect(() => {
     const walkKeyListener = (e: KeyboardEvent) => {

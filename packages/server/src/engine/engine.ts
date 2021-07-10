@@ -2,6 +2,7 @@ import { UUID } from "io-ts-types";
 import {
   ClientToServerPayloadType,
   ClientToServerTopic,
+  oppositeDirection,
   ServerToClientPayloadType,
   ServerToClientTopic,
 } from "kuramud-common";
@@ -47,6 +48,39 @@ class Engine {
       options.eventSender("DESCRIBE_ROOM", [playerUuid], {
         description: roomOfPlayer.description,
         exits: roomOfPlayer.exits.map((exit) => exit.direction),
+      });
+    });
+
+    this.eventDistributor.register("WALK", ({ direction }, playerUuid) => {
+      const oldRoomId = this.usersCurrentRoom[playerUuid];
+      const roomOfPlayer = this.rooms[oldRoomId];
+      const nextRoomId = roomOfPlayer.exits.find(
+        (exit) => exit.direction === direction
+      )?.roomUuid;
+      if (!nextRoomId) {
+        console.error(
+          `Can't go ${direction} from ${oldRoomId} (player ${playerUuid})`
+        );
+        return;
+      }
+      const nextRoom = this.rooms[nextRoomId];
+
+      this.removeUserFromRoom(playerUuid);
+      this.addUserToRoom(playerUuid, nextRoomId);
+
+      options.eventSender("WALK", this.roomsWithUsers[oldRoomId], {
+        playerUuid,
+        goingOrComing: "goingAway",
+        direction,
+      });
+      options.eventSender("WALK", this.roomsWithUsers[nextRoomId], {
+        playerUuid,
+        goingOrComing: "comingFrom",
+        direction: oppositeDirection[direction],
+      });
+      options.eventSender("DESCRIBE_ROOM", [playerUuid], {
+        description: nextRoom.description,
+        exits: nextRoom.exits.map((exit) => exit.direction),
       });
     });
   }

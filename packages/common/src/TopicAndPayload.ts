@@ -8,6 +8,12 @@ export const Direction = t.union(
   [t.literal("N"), t.literal("E"), t.literal("S"), t.literal("W")],
   "Direction"
 );
+export const oppositeDirection: Record<Direction, Direction> = {
+  E: "W",
+  N: "S",
+  S: "N",
+  W: "E",
+};
 
 const topicPayload = <TOPIC extends string, PAYLOAD extends t.Any>(
   topic: TOPIC,
@@ -19,6 +25,7 @@ export const ClientToServer = t.union([
   topicPayload("LOGOUT", t.void),
   topicPayload("LOOK_ROOM", t.void),
   topicPayload("DEV_CLEANUP", t.void),
+  topicPayload("WALK", t.type({ direction: Direction })),
 ]);
 
 export type ClientToServerTopic = t.TypeOf<typeof ClientToServer>["topic"];
@@ -38,6 +45,19 @@ export const ServerToClient = t.union([
   topicPayload(
     "DESCRIBE_ROOM",
     t.type({ description: t.string, exits: t.array(Direction) })
+  ),
+  topicPayload(
+    "WALK",
+    t.intersection([
+      PlayerUuidInfo,
+      t.type({
+        goingOrComing: t.union([
+          t.literal("comingFrom"),
+          t.literal("goingAway"),
+        ]),
+        direction: Direction,
+      }),
+    ])
   ),
 ]);
 

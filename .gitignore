@@ -1,5 +1,7 @@
 build
 
+tsconfig.tsbuildinfo
+
 # yarn v2
 .yarn/cache
 .yarn/unplugged

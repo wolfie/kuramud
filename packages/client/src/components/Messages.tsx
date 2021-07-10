@@ -4,7 +4,7 @@ type MessagesProps = { messages: string[] };
 const Messages: React.FC<MessagesProps> = ({ messages }) => (
   <ul>
     {messages.map((msg) => (
-      <li key={msg}>{msg}</li>
+      <li key={Math.random()}>{msg}</li>
     ))}
   </ul>
 );

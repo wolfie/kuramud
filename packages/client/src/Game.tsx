@@ -73,6 +73,22 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
       }),
 
       api.on("DESCRIBE_ROOM", (roomDesc) => setRoomDescription(roomDesc)),
+
+      api.on(
+        "WALK",
+        ({ direction, goingOrComing, playerUuid: walkingPlayerUuid }) => {
+          const action =
+            walkingPlayerUuid === playerUuid
+              ? `you ${goingOrComing === "comingFrom" ? "come" : "leave"}`
+              : `${walkingPlayerUuid} ${
+                  goingOrComing === "comingFrom" ? "comes" : "leaves"
+                }`;
+
+          const fromOrTo = goingOrComing === "comingFrom" ? "from" : "to";
+
+          appendMessage(`${action} ${fromOrTo} ${direction}`);
+        }
+      ),
     ];
 
     return () => {
