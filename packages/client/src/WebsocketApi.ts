@@ -1,9 +1,12 @@
-import type {
+import {
   ClientToServerPayloadType,
   ClientToServerTopic,
+  createLogger,
   ServerToClientPayloadType,
   ServerToClientTopic,
 } from "kuramud-common";
+
+const logger = createLogger("WebsocketApi.ts");
 
 const BACKEND_URL = "ws://localhost:8000";
 
@@ -30,29 +33,29 @@ class WebsocketApi {
   constructor() {
     this.ws = new WebSocket(BACKEND_URL);
     this.ws.onopen = () => {
-      console.log("connected");
+      logger.log("connected");
       this.connectionStatusHandlers.forEach((fn) => fn(true));
     };
     this.ws.onclose = () => {
-      console.log("closed");
+      logger.log("closed");
       this.ws.close();
       this.connectionStatusHandlers.forEach((fn) => fn(false));
     };
     this.ws.onerror = (e) => {
-      console.error(e);
+      logger.error(e);
       this.ws.close();
     };
 
     this.ws.onmessage = (e) => {
       if (typeof e.data !== "string") {
-        console.info(`unexpected websocket data type: ${typeof e.data}`);
+        logger.info(`unexpected websocket data type: ${typeof e.data}`);
         return;
       }
 
       const REGEX_MATCHER = /^(?<topic>[^ ]+)(?: (?<payload>.+)?)?$/gm; // regex instances are stateful, so we need to recreate it always
       const match = REGEX_MATCHER.exec(e.data);
       if (!match) {
-        console.error(
+        logger.error(
           `regex ${REGEX_MATCHER} didn't match anything for ${e.data}`
         );
         return;
@@ -60,10 +63,10 @@ class WebsocketApi {
 
       const topic = match.groups?.topic;
       const payload = match.groups?.payload;
-      console.log(`[receive ${topic}] ${payload}`);
+      logger.log(`[receive ${topic}] ${payload}`);
 
       if (typeof topic === "undefined") {
-        console.error("unparseable message " + e.data);
+        logger.error("unparseable message " + e.data);
         return;
       }
 
@@ -75,7 +78,7 @@ class WebsocketApi {
   }
 
   close = () => {
-    console.log("close");
+    logger.log("close");
     this.ws.close();
   };
 
@@ -103,7 +106,7 @@ class WebsocketApi {
 
   send: SendTopicData = (topic, payload: any) => {
     if (!this.connected) {
-      console.warn(
+      logger.warn(
         `Websocket is not open anymore (readystate: ${this.ws.readyState})`
       );
       return;

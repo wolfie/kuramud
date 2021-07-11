@@ -9639,6 +9639,7 @@ fsevents@^1.2.7:
   dependencies:
     fp-ts: ^2.10.5
     io-ts: ^2.2.16
+    loglevel: ^1.7.1
     typescript: ^4.3.4
   languageName: unknown
   linkType: soft
@@ -9907,7 +9908,7 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
-"loglevel@npm:^1.6.8":
+"loglevel@npm:^1.6.8, loglevel@npm:^1.7.1":
   version: 1.7.1
   resolution: "loglevel@npm:1.7.1"
   checksum: abee97e346afb3c7e4130eff3025b4e8da1450cf92495bd12f3cc5faff46d6f658f73529c21e7d75634677f48ab1e14ceb5167d1952f53e8aceba5cb795029c2

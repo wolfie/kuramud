@@ -8,7 +8,9 @@ import Messages, { Message } from "./components/Messages";
 import ApiConnectionGuard from "./components/ApiConnectionGuard";
 import DevControls from "./components/DevControls";
 import WebsocketApi from "./WebsocketApi";
-import { ServerToClientPayloadType } from "kuramud-common";
+import { ServerToClientPayloadType, createLogger } from "kuramud-common";
+
+const logger = createLogger("Game.tsx");
 
 const api = new WebsocketApi();
 export const SharedWebsocketContext = React.createContext<WebsocketApi>(api);
@@ -32,7 +34,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
   >({ description: "", exits: [] });
 
   const appendMessage = (text: string) => {
-    console.log("append");
+    logger.log("append");
     setMessages((messages) =>
       [{ text, timestamp: Date.now() }, ...messages].slice(0, 10)
     );
@@ -50,7 +52,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
   }, [isLoggedIn, oneTimeCode, playerUuid]);
 
   useEffect(() => {
-    console.log("plaueruuid or ws changed");
+    logger.log("plaueruuid or ws changed");
     const unregisterFunctions = [
       api.on("LOGIN", (payload, send) => {
         if (payload.playerUuid === playerUuid) {
@@ -95,7 +97,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
     ];
 
     return () => {
-      console.log("cleanup!");
+      logger.log("cleanup!");
       unregisterFunctions.forEach((fn) => fn());
     };
   }, [playerUuid]);

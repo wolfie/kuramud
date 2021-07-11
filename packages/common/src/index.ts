@@ -1,3 +1,4 @@
+export * from "./createLogger";
 export * from "./filterObj";
 export * from "./mapObj";
 export * from "./parseInput";

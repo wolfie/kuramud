@@ -2,6 +2,7 @@ import { UUID } from "io-ts-types";
 import {
   ClientToServerPayloadType,
   ClientToServerTopic,
+  createLogger,
   mapObj,
   oppositeDirection,
   ServerToClientPayloadType,
@@ -10,6 +11,8 @@ import {
 import { getPlayerByUuid } from "../players";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
+
+const logger = createLogger("engine.ts");
 
 export type EventSender = <T extends ServerToClientTopic>(
   topic: T,
@@ -52,7 +55,7 @@ class Engine {
         (exit) => exit.direction === direction
       )?.roomUuid;
       if (!nextRoomId) {
-        console.error(
+        logger.error(
           `Can't go ${direction} from ${oldRoomId} (player ${playerUuid})`
         );
         return;
@@ -85,14 +88,14 @@ class Engine {
   }
 
   private addUserToRoom = (userUuid: UUID, roomId: StartWorld.ValidRoomId) => {
-    console.log(`addUserToRoom(${userUuid}, ${roomId})`);
+    logger.log(`addUserToRoom(${userUuid}, ${roomId})`);
     const currentUsersInRoom = this.roomsWithUsers[roomId] ?? [];
     this.roomsWithUsers[roomId] = [...currentUsersInRoom, userUuid];
     this.usersCurrentRoom[userUuid] = roomId;
   };
 
   private removeUserFromRoom = (userUuid: string) => {
-    console.log(`removeUserFromRoom(${userUuid})`);
+    logger.log(`removeUserFromRoom(${userUuid})`);
     const currentRoomUuid = this.usersCurrentRoom[userUuid];
     delete this.usersCurrentRoom[userUuid];
     this.roomsWithUsers[currentRoomUuid] = (
@@ -102,7 +105,7 @@ class Engine {
 
   loginPlayer = (playerUuid: UUID) => {
     if (this.users[playerUuid]) {
-      console.error("User is already logged in");
+      logger.error("User is already logged in");
       return;
     }
 
@@ -119,7 +122,7 @@ class Engine {
 
   logoutPlayer = (playerUuid: UUID) => {
     if (!this.users[playerUuid]) {
-      console.error("User is not logged in");
+      logger.error("User is not logged in");
       return;
     }
 

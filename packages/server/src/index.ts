@@ -1,6 +1,6 @@
 import express from "express";
 import ws from "ws";
-import { ClientToServer, decode } from "kuramud-common";
+import { ClientToServer, createLogger, decode } from "kuramud-common";
 import Engine from "./engine/engine";
 import { UUID } from "io-ts-types";
 import WebSocket from "ws";
@@ -13,6 +13,8 @@ const PORT = 8000;
 
 const loginSecretBridge = new LoginSecretBridge();
 
+const logger = createLogger("server-index");
+
 const app = express();
 app.use(cors());
 app.use(json());
@@ -24,10 +26,10 @@ const addPlayerSocketSpecial = (playerUuid: UUID, socket: ws) => {
     (entry) => entry.playerUuid === playerUuid
   );
   if (alreadyHasASocket) {
-    console.error(`Player ${playerUuid} already has a socket`);
+    logger.error(`Player ${playerUuid} already has a socket`);
   } else {
     playerSockets.push({ playerUuid, socket });
-    console.log(`added socket for ${playerUuid} (now ${playerSockets.length})`);
+    logger.log(`added socket for ${playerUuid} (now ${playerSockets.length})`);
   }
 };
 
@@ -36,12 +38,12 @@ const removePlayerSocketSpecial = (playerUuid: string) => {
     (entry) => entry.playerUuid === playerUuid
   );
   if (!playerSocketExists) {
-    console.error(`Player ${playerUuid} does not have an existing socket`);
+    logger.error(`Player ${playerUuid} does not have an existing socket`);
   } else {
     playerSockets = playerSockets.filter(
       (entry) => entry.playerUuid !== playerUuid
     );
-    console.log(`removed socket for ${playerUuid}`);
+    logger.log(`removed socket for ${playerUuid}`);
   }
 };
 
@@ -50,52 +52,52 @@ const engine = new Engine({
     playerSockets
       .filter(({ playerUuid }) => playerUuids.includes(playerUuid))
       .forEach(({ socket, playerUuid }) => {
-        console.log(`[send ${topic} to ${playerUuid}]`);
+        logger.log(`[send ${topic} to ${playerUuid}]`);
         if (socket.readyState !== WebSocket.OPEN) {
-          console.warn("socket is not open");
+          logger.warn("socket is not open");
           return;
         }
         socket.send(
           `${topic} ${JSON.stringify(payload)}`,
-          (e) => e && console.error(e)
+          (e) => e && logger.error(e)
         );
       }),
 });
 
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on("connection", (socket) => {
-  console.log("CONNECTION");
+  logger.log("CONNECTION");
   socket.on("close", () => {
     const found = playerSockets.find((entry) => entry.socket === socket);
     if (found) {
-      console.log(`closing socket for player ${found.playerUuid}`);
+      logger.log(`closing socket for player ${found.playerUuid}`);
       playerSockets = playerSockets.filter(
         (entry) => entry.playerUuid !== found.playerUuid
       );
 
       engine.logoutPlayer(found.playerUuid);
     } else {
-      console.info(
+      logger.info(
         `closing socket for unknown player (${playerSockets.length} left)`
       );
     }
   });
   socket.on("open", () => {
-    console.log("socket opened");
+    logger.log("socket opened");
   });
   socket.on("message", (message) => {
     if (typeof message !== "string") {
-      console.error(`Unsupported message datatype ${typeof message}`);
+      logger.error(`Unsupported message datatype ${typeof message}`);
       return;
     }
-    console.log(`Readystate: ${socket.readyState}`);
+    logger.log(`Readystate: ${socket.readyState}`);
 
     const sourcePlayerUuid = playerSockets.find(
       (entry) => entry.socket === socket
     )?.playerUuid;
 
     const [rawTopic, rawPayload] = message.split(" ", 2);
-    console.log({ rawTopic, rawPayload });
+    logger.log({ rawTopic, rawPayload });
     const result = decode(ClientToServer, {
       topic: rawTopic,
       payload: rawPayload ? JSON.parse(rawPayload) : undefined,
@@ -107,12 +109,12 @@ wsServer.on("connection", (socket) => {
         const oneTimeCodePlayerUuid = loginSecretBridge.consume(oneTimeCode);
 
         if (!oneTimeCodePlayerUuid) {
-          console.error(
+          logger.error(
             `No one-time code matches for ${oneTimeCode} (for supposed player ${playerUuid})`
           );
           return;
         } else if (playerUuid !== oneTimeCodePlayerUuid) {
-          console.error(
+          logger.error(
             `player UUID mismatch (${playerUuid} !== ${oneTimeCodePlayerUuid})`
           );
           return;
@@ -123,7 +125,7 @@ wsServer.on("connection", (socket) => {
         break;
       case "LOGOUT":
         if (!sourcePlayerUuid)
-          console.error("Unexpected LOGOUT from a player not found");
+          logger.error("Unexpected LOGOUT from a player not found");
         else {
           removePlayerSocketSpecial(sourcePlayerUuid);
           engine.logoutPlayer(sourcePlayerUuid);
@@ -132,17 +134,17 @@ wsServer.on("connection", (socket) => {
       case "DEV_CLEANUP":
         // this seems to be needed because of react HMR doing weird things with websockets
         playerSockets.forEach((e) => {
-          console.log("closing " + e.socket);
+          logger.log("closing " + e.socket);
           e.socket.close(1012); // 1012 = Service Restart
         });
 
-        console.log("DEV CLEANUP");
-        console.log(playerSockets.length);
+        logger.log("DEV CLEANUP");
+        logger.log(playerSockets.length);
         break;
       default:
         sourcePlayerUuid
           ? engine.onMessage(result.topic, result.payload, sourcePlayerUuid)
-          : console.error("Got message from a socket of a unregistered player");
+          : logger.error("Got message from a socket of a unregistered player");
         break;
     }
   });
@@ -157,7 +159,7 @@ app.use(
 );
 
 const server = app.listen(PORT, () => {
-  console.log(`server started on port ${PORT}!`);
+  logger.log(`server started on port ${PORT}!`);
 });
 server.on("upgrade", (request, socket, head) =>
   wsServer.handleUpgrade(request, socket, head, (socket) => {

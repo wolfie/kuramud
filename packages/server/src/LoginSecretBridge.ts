@@ -1,4 +1,6 @@
-import { filterObj } from "kuramud-common";
+import { createLogger, filterObj } from "kuramud-common";
+
+const logger = createLogger("LoginSecretBridge.ts");
 
 type PlayerUuid = string; // just to document the intent
 
@@ -24,7 +26,7 @@ class LoginSecretBridge {
     const entriesRemoved = beforeEntries - afterEntries;
 
     if (entriesRemoved > 0) {
-      console.log(
+      logger.log(
         `${entriesRemoved} entries removed during cleanup, ${afterEntries} remain`
       );
     }
@@ -34,31 +36,31 @@ class LoginSecretBridge {
 
   private startInterval = () => {
     if (this.interval) {
-      console.error(
+      logger.error(
         "Trying to start LoginSecretBridge cleanup interval, but it's already running"
       );
       return;
     }
 
-    console.log("Starting LoginSecretBridge cleanup");
+    logger.log("Starting LoginSecretBridge cleanup");
     this.interval = setInterval(this.cleanup, TOKEN_TTL_MS / 10);
   };
 
   private stopInterval = () => {
     if (!this.interval) {
-      console.error(
+      logger.error(
         "Trying to stop LoginSecretBridge interval, but it was already stopped"
       );
       return;
     }
 
-    console.log("Stopping LoginSecretBridge cleanup");
+    logger.log("Stopping LoginSecretBridge cleanup");
     clearInterval(this.interval);
     this.interval = undefined;
   };
 
   put = (playerUuid: PlayerUuid, oneUseToken: string): void => {
-    console.log(`Adding token ${oneUseToken} for player ${playerUuid}`);
+    logger.log(`Adding token ${oneUseToken} for player ${playerUuid}`);
     this.entries[playerUuid] = { oneUseToken, creationTimestamp: Date.now() };
     if (!this.interval) this.startInterval();
   };
@@ -68,11 +70,11 @@ class LoginSecretBridge {
       ([uuid, data]) => data.oneUseToken === oneUseToken
     );
     if (!foundEntry) {
-      console.error(`Cannot find one use token ${oneUseToken}`);
+      logger.error(`Cannot find one use token ${oneUseToken}`);
       return;
     }
 
-    console.log(
+    logger.log(
       `Consuming one use token ${oneUseToken} for player ${foundEntry[0]}`
     );
     const playerUuid = foundEntry[0];
