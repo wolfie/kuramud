@@ -7,6 +7,7 @@ import {
   ServerToClientPayloadType,
   ServerToClientTopic,
 } from "kuramud-common";
+import { getPlayerByUuid } from "../players";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
 
@@ -61,13 +62,18 @@ class Engine {
       this.removeUserFromRoom(playerUuid);
       this.addUserToRoom(playerUuid, nextRoomId);
 
+      const playerName =
+        getPlayerByUuid(playerUuid)?.username ?? "[playernotfound]";
+
       options.eventSender("WALK", this.roomsWithUsers[oldRoomId], {
         playerUuid,
+        playerName,
         goingOrComing: "goingAway",
         direction,
       });
       options.eventSender("WALK", this.roomsWithUsers[nextRoomId], {
         playerUuid,
+        playerName,
         goingOrComing: "comingFrom",
         direction: oppositeDirection[direction],
       });
@@ -107,6 +113,7 @@ class Engine {
     this.addUserToRoom(playerUuid, "TOWNSQUARE");
     this.options.eventSender("LOGIN", this.roomsWithUsers["TOWNSQUARE"], {
       playerUuid,
+      playerName: getPlayerByUuid(playerUuid)?.username ?? "[playernotfound]",
     });
   };
 
@@ -120,6 +127,7 @@ class Engine {
     this.removeUserFromRoom(playerUuid);
     this.options.eventSender("LOGOUT", this.roomsWithUsers[playerCurrentRoom], {
       playerUuid,
+      playerName: getPlayerByUuid(playerUuid)?.username ?? "[playernotfound]",
     });
   };
 

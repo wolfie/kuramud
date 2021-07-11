@@ -1,8 +1,6 @@
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
-const PlayerUuidInfo = t.type({ playerUuid: tt.UUID });
-
 export type Direction = t.TypeOf<typeof Direction>;
 export const Direction = t.union(
   [t.literal("N"), t.literal("E"), t.literal("S"), t.literal("W")],
@@ -21,10 +19,7 @@ const topicPayload = <TOPIC extends string, PAYLOAD extends t.Any>(
 ) => t.type({ topic: t.literal(topic), payload });
 
 export const ClientToServer = t.union([
-  topicPayload(
-    "LOGIN",
-    t.intersection([PlayerUuidInfo, t.type({ oneTimeCode: t.string })])
-  ),
+  topicPayload("LOGIN", t.type({ playerUuid: tt.UUID, oneTimeCode: t.string })),
   topicPayload("LOGOUT", t.void),
   topicPayload("LOOK_ROOM", t.void),
   topicPayload("DEV_CLEANUP", t.void),
@@ -43,24 +38,20 @@ export type ServerToClientPayloadType<T extends ServerToClientTopic> = Extract<
   { topic: T }
 >["payload"];
 export const ServerToClient = t.union([
-  topicPayload("LOGIN", PlayerUuidInfo),
-  topicPayload("LOGOUT", PlayerUuidInfo),
+  topicPayload("LOGIN", t.type({ playerUuid: tt.UUID, playerName: t.string })),
+  topicPayload("LOGOUT", t.type({ playerUuid: tt.UUID, playerName: t.string })),
   topicPayload(
     "DESCRIBE_ROOM",
     t.type({ description: t.string, exits: t.array(Direction) })
   ),
   topicPayload(
     "WALK",
-    t.intersection([
-      PlayerUuidInfo,
-      t.type({
-        goingOrComing: t.union([
-          t.literal("comingFrom"),
-          t.literal("goingAway"),
-        ]),
-        direction: Direction,
-      }),
-    ])
+    t.type({
+      playerUuid: tt.UUID,
+      playerName: t.string,
+      goingOrComing: t.union([t.literal("comingFrom"), t.literal("goingAway")]),
+      direction: Direction,
+    })
   ),
 ]);
 

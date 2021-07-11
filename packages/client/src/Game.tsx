@@ -57,7 +57,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
           setIsLoggedIn(true);
           send("LOOK_ROOM", undefined);
         } else {
-          appendMessage(`LOGIN: ${payload.playerUuid}`);
+          appendMessage(`LOGIN: ${payload.playerName}`);
         }
       }),
 
@@ -66,7 +66,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
           setIsLoggedIn(false);
           appendMessage(`LOGOUT: you`);
         } else {
-          appendMessage(`LOGOUT: ${payload.playerUuid}`);
+          appendMessage(`LOGOUT: ${payload.playerName}`);
         }
       }),
 
@@ -74,11 +74,16 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
 
       api.on(
         "WALK",
-        ({ direction, goingOrComing, playerUuid: walkingPlayerUuid }) => {
+        ({
+          direction,
+          goingOrComing,
+          playerUuid: walkingPlayerUuid,
+          playerName,
+        }) => {
           const action =
             walkingPlayerUuid === playerUuid
               ? `you ${goingOrComing === "comingFrom" ? "come" : "leave"}`
-              : `${walkingPlayerUuid} ${
+              : `${playerName} ${
                   goingOrComing === "comingFrom" ? "comes" : "leaves"
                 }`;
 

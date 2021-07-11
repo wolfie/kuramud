@@ -1,19 +1,7 @@
 import { Parser, Response, Route, route, router } from "typera-express";
 import { v4 as uuid } from "uuid";
 import * as t from "io-ts";
-
-const players = [
-  {
-    username: "dev",
-    password: "dev",
-    uuid: "206a9b9f-bb88-4862-8c39-aab6a95d1a09",
-  },
-  {
-    username: "player",
-    password: "player",
-    uuid: "b788659b-49d4-4de8-9dd9-dfd5853a3395",
-  },
-];
+import { Players } from "../players";
 
 const LoginBody = t.type({ username: t.string, password: t.string });
 
@@ -30,7 +18,7 @@ export const generateLoginRoute = (
     .post("/login")
     .use(Parser.body(LoginBody))
     .handler((ctx) => {
-      const playerUuid = players.find(
+      const playerUuid = Players.find(
         (player) =>
           player.username === ctx.body.username &&
           player.password === ctx.body.password
