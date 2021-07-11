@@ -92,7 +92,9 @@ class WebsocketApi {
   on = <T extends ServerToClientTopic>(topic: T, handler: Handler<T>) => {
     const newEntry: HandlerEntry<typeof topic> = { topic, handler };
     this.handlers.push(newEntry);
-    return () => this.handlers.splice(this.handlers.indexOf(newEntry), 1);
+    return () => {
+      this.handlers.splice(this.handlers.indexOf(newEntry), 1);
+    };
   };
 
   get connected() {

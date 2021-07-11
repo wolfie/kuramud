@@ -4,10 +4,18 @@ import { ClientToServer, decode } from "kuramud-common";
 import Engine from "./engine/engine";
 import { UUID } from "io-ts-types";
 import WebSocket from "ws";
+import login from "./routes/login";
+import LoginSecretBridge from "./LoginSecretBridge";
+import cors from "cors";
+import { json } from "body-parser";
 
 const PORT = 8000;
 
+const loginSecretBridge = new LoginSecretBridge();
+
 const app = express();
+app.use(cors());
+app.use(json());
 
 let playerSockets: { playerUuid: UUID; socket: ws }[] = [];
 
@@ -95,7 +103,21 @@ wsServer.on("connection", (socket) => {
 
     switch (result.topic) {
       case "LOGIN":
-        const playerUuid = result.payload.playerUuid;
+        const { playerUuid, oneTimeCode } = result.payload;
+        const oneTimeCodePlayerUuid = loginSecretBridge.consume(oneTimeCode);
+
+        if (!oneTimeCodePlayerUuid) {
+          console.error(
+            `No one-time code matches for ${oneTimeCode} (for supposed player ${playerUuid})`
+          );
+          return;
+        } else if (playerUuid !== oneTimeCodePlayerUuid) {
+          console.error(
+            `player UUID mismatch (${playerUuid} !== ${oneTimeCodePlayerUuid})`
+          );
+          return;
+        }
+
         addPlayerSocketSpecial(playerUuid, socket);
         engine.loginPlayer(playerUuid);
         break;
@@ -125,6 +147,14 @@ wsServer.on("connection", (socket) => {
     }
   });
 });
+
+app.use(
+  "/",
+  login({
+    onPlayerLogin: (playerUuid, oneUseToken) =>
+      loginSecretBridge.put(playerUuid, oneUseToken),
+  })
+);
 
 const server = app.listen(PORT, () => {
   console.log(`server started on port ${PORT}!`);

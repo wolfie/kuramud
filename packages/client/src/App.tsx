@@ -4,11 +4,17 @@ import Game from "./Game";
 
 const App: React.FC = () => {
   const [playerUuid, setPlayerUuid] = React.useState<string>();
+  const [oneTimeCode, setOneTimeCode] = React.useState<string>();
 
-  return !playerUuid ? (
-    <Login onLogin={setPlayerUuid} />
+  const onLogin = (playerUuid: string, oneTimeCode: string) => {
+    setPlayerUuid(playerUuid);
+    setOneTimeCode(oneTimeCode);
+  };
+
+  return !playerUuid || !oneTimeCode ? (
+    <Login onLogin={onLogin} />
   ) : (
-    <Game playerUuid={playerUuid} />
+    <Game playerUuid={playerUuid} oneTimeCode={oneTimeCode} />
   );
 };
 

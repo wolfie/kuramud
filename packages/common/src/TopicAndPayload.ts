@@ -21,7 +21,10 @@ const topicPayload = <TOPIC extends string, PAYLOAD extends t.Any>(
 ) => t.type({ topic: t.literal(topic), payload });
 
 export const ClientToServer = t.union([
-  topicPayload("LOGIN", PlayerUuidInfo),
+  topicPayload(
+    "LOGIN",
+    t.intersection([PlayerUuidInfo, t.type({ oneTimeCode: t.string })])
+  ),
   topicPayload("LOGOUT", t.void),
   topicPayload("LOOK_ROOM", t.void),
   topicPayload("DEV_CLEANUP", t.void),

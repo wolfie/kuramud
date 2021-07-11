@@ -2,6 +2,7 @@ import { UUID } from "io-ts-types";
 import {
   ClientToServerPayloadType,
   ClientToServerTopic,
+  mapObj,
   oppositeDirection,
   ServerToClientPayloadType,
   ServerToClientTopic,
@@ -19,14 +20,6 @@ type User = {
   uuid: string;
   username: string;
 };
-
-const mapObj = <K extends string, V, R>(
-  obj: Record<K, V>,
-  mapper: (value: V) => R
-): Record<K, R> =>
-  Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [k, mapper(v as V)])
-  ) as Record<K, R>;
 
 type UserUUID = string;
 

@@ -21,11 +21,11 @@ const Container = styled.div`
 
 type GameProps = {
   playerUuid: string;
+  oneTimeCode: string;
 };
-const Game: React.FC<GameProps> = ({ playerUuid }) => {
+const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
   const [apiIsConnected, setApiIsConnected] = React.useState(false);
-  const [hasRegisteredWithServer, setHasRegisteredWithServer] =
-    React.useState(false);
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [roomDescription, setRoomDescription] = React.useState<
     ServerToClientPayloadType<"DESCRIBE_ROOM">
@@ -44,21 +44,17 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
     return off;
   }, []);
 
-  useEffect(
-    () => {
-      if (hasRegisteredWithServer) return;
-      api.send("LOGIN", { playerUuid: playerUuid as any });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hasRegisteredWithServer, playerUuid]
-  );
+  useEffect(() => {
+    if (isLoggedIn) return;
+    api.send("LOGIN", { playerUuid: playerUuid as any, oneTimeCode });
+  }, [isLoggedIn, oneTimeCode, playerUuid]);
 
   useEffect(() => {
     console.log("plaueruuid or ws changed");
     const unregisterFunctions = [
       api.on("LOGIN", (payload, send) => {
         if (payload.playerUuid === playerUuid) {
-          setHasRegisteredWithServer(true);
+          setIsLoggedIn(true);
           send("LOOK_ROOM", undefined);
         } else {
           appendMessage(`LOGIN: ${payload.playerUuid}`);
@@ -67,7 +63,7 @@ const Game: React.FC<GameProps> = ({ playerUuid }) => {
 
       api.on("LOGOUT", (payload) => {
         if (payload.playerUuid === playerUuid) {
-          setHasRegisteredWithServer(false);
+          setIsLoggedIn(false);
           appendMessage(`LOGOUT: you`);
         } else {
           appendMessage(`LOGOUT: ${payload.playerUuid}`);
