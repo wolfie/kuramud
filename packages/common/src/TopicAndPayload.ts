@@ -51,9 +51,12 @@ export const ServerToClient = t.union([
   ),
   topicPayload(
     "DESCRIBE_ITEM",
-    t.union([
-      t.type({ found: t.literal(false) }),
-      t.type({ found: t.literal(true), description: t.string }),
+    t.intersection([
+      t.type({ keyword: t.string }),
+      t.union([
+        t.type({ found: t.literal(false) }),
+        t.type({ found: t.literal(true), description: t.string }),
+      ]),
     ])
   ),
   topicPayload(

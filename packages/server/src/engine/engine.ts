@@ -80,8 +80,12 @@ class Engine {
           "DESCRIBE_ITEM",
           [playerUuid],
           matchingItem
-            ? { found: true, description: matchingItem.description }
-            : { found: false }
+            ? {
+                keyword: lookKeyword,
+                found: true,
+                description: matchingItem.description,
+              }
+            : { keyword: lookKeyword, found: false }
         );
       }
     );

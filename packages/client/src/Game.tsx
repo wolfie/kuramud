@@ -74,6 +74,14 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
 
       api.on("DESCRIBE_ROOM", (roomDesc) => setRoomDescription(roomDesc)),
 
+      api.on("DESCRIBE_ITEM", (item) =>
+        appendMessage(
+          item.found
+            ? item.description
+            : `You can't find anything looking like ${item.keyword}`
+        )
+      ),
+
       api.on(
         "WALK",
         ({

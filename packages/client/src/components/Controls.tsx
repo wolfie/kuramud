@@ -3,17 +3,36 @@ import { useEffect } from "react";
 import { Direction } from "kuramud-common";
 import { useContext } from "react";
 import { SharedWebsocketContext } from "../Game";
+import { useCallback } from "react";
+
+const onEnterPress =
+  (fn: () => void): React.KeyboardEventHandler =>
+  (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    fn();
+  };
 
 type ControlsProps = {
   enabledDirections: Direction[];
 };
 const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
+  const [lookAt, setLookAt] = React.useState("");
+  const [ignoreGlobalKeys, setIgnoreGlobalKeys] = React.useState(false);
+
+  const lookAtRef = React.useRef<HTMLInputElement>(null);
+
   const api = useContext(SharedWebsocketContext);
 
-  const walk = (direction: Direction) => api.send("WALK", { direction });
+  const walk = useCallback(
+    (direction: Direction) => api.send("WALK", { direction }),
+    [api]
+  );
 
   useEffect(() => {
-    const walkKeyListener = (e: KeyboardEvent) => {
+    if (ignoreGlobalKeys) return;
+
+    const globalKeyListener = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) return;
 
       switch (e.key) {
@@ -25,42 +44,60 @@ const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
           return walk("W");
         case "d":
           return walk("E");
+        case "l":
+          return lookAtRef.current?.focus();
       }
     };
 
-    document.addEventListener("keypress", walkKeyListener);
+    document.addEventListener("keypress", globalKeyListener);
     return () => {
-      document.removeEventListener("keypress", walkKeyListener);
+      document.removeEventListener("keypress", globalKeyListener);
     };
-  });
+  }, [ignoreGlobalKeys, walk]);
 
   return (
-    <div>
-      <button
-        onClick={() => walk("N")}
-        disabled={!enabledDirections.includes("N")}
-      >
-        N
-      </button>
-      <button
-        onClick={() => walk("S")}
-        disabled={!enabledDirections.includes("S")}
-      >
-        S
-      </button>
-      <button
-        onClick={() => walk("W")}
-        disabled={!enabledDirections.includes("W")}
-      >
-        W
-      </button>
-      <button
-        onClick={() => walk("E")}
-        disabled={!enabledDirections.includes("E")}
-      >
-        E
-      </button>
-    </div>
+    <>
+      <div>
+        <button
+          onClick={() => walk("N")}
+          disabled={!enabledDirections.includes("N")}
+        >
+          N
+        </button>
+        <button
+          onClick={() => walk("S")}
+          disabled={!enabledDirections.includes("S")}
+        >
+          S
+        </button>
+        <button
+          onClick={() => walk("W")}
+          disabled={!enabledDirections.includes("W")}
+        >
+          W
+        </button>
+        <button
+          onClick={() => walk("E")}
+          disabled={!enabledDirections.includes("E")}
+        >
+          E
+        </button>
+      </div>
+      <div>
+        Look at{" "}
+        <input
+          ref={lookAtRef}
+          onFocus={() => setIgnoreGlobalKeys(true)}
+          onBlur={() => setIgnoreGlobalKeys(false)}
+          value={lookAt}
+          onChange={(e) => setLookAt(e.target.value)}
+          onKeyPress={onEnterPress(() => {
+            setLookAt("");
+            api.send("LOOK_ITEM", { lookKeyword: lookAt });
+          })}
+        />
+      </div>
+    </>
   );
 };
 
