@@ -11,6 +11,7 @@ import {
 import { getPlayerByUuid } from "../players";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
+import WalkLimiter from "./WalkLimiter";
 
 const logger = createLogger("engine.ts");
 
@@ -25,17 +26,22 @@ type User = {
   username: string;
 };
 
-type UserUUID = string;
+type PlayerUuid = string; // just to document the intent
+
+const PLAYER_WALK_COOLDOWN_MS = 1000;
 
 class Engine {
   private rooms = StartWorld.Rooms;
   private users: Record<string, User> = {};
-  private roomsWithUsers: Record<StartWorld.ValidRoomId, UserUUID[]> = mapObj(
+  private roomsWithUsers: Record<StartWorld.ValidRoomId, PlayerUuid[]> = mapObj(
     StartWorld.Rooms,
     () => []
   );
-  private usersCurrentRoom: Record<UserUUID, StartWorld.ValidRoomId> = {};
+  private usersCurrentRoom: Record<PlayerUuid, StartWorld.ValidRoomId> = {};
   private eventDistributor = new ServerEventDistributor();
+  private walkLimiter = new WalkLimiter({
+    walkCooldownMs: PLAYER_WALK_COOLDOWN_MS,
+  });
 
   constructor(private options: { eventSender: EventSender }) {
     this.eventDistributor.register("LOOK_ROOM", (_, playerUuid) => {
@@ -49,6 +55,8 @@ class Engine {
     });
 
     this.eventDistributor.register("WALK", ({ direction }, playerUuid) => {
+      if (!this.walkLimiter.isAllowed(playerUuid)) return;
+
       const oldRoomId = this.usersCurrentRoom[playerUuid];
       const roomOfPlayer = this.rooms[oldRoomId];
       const nextRoomId = roomOfPlayer.exits.find(
