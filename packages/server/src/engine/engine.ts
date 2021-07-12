@@ -3,11 +3,11 @@ import {
   ClientToServerPayloadType,
   ClientToServerTopic,
   createLogger,
-  mapObj,
   oppositeDirection,
   ServerToClientPayloadType,
   ServerToClientTopic,
 } from "kuramud-common";
+import { mapObj } from "kuramud-common/lib/fns";
 import { getPlayerByUuid } from "../players";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";

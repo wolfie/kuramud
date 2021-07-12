@@ -1,5 +1,5 @@
-import { createLogger } from "../../../common/lib";
-import TemporarySet from "../TemporarySet";
+import { createLogger } from "kuramud-common";
+import TemporarySet from "../utils/TemporarySet";
 
 const logger = createLogger("WalkLimiter.ts");
 

@@ -1,5 +1,4 @@
+export * as fns from "./fns";
 export * from "./createLogger";
-export * from "./filterObj";
-export * from "./mapObj";
-export * from "./parseInput";
 export * from "./TopicAndPayload";
+export * from "./typedComms";

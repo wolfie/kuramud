@@ -1,4 +1,5 @@
-import { createLogger, filterObj } from "../../common/lib";
+import { createLogger } from "kuramud-common";
+import { filterObj } from "kuramud-common/lib/fns";
 
 export type TemporaryRecordArgs = {
   ttlMs?: number;

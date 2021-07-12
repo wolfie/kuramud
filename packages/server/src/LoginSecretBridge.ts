@@ -1,5 +1,5 @@
 import { createLogger } from "kuramud-common";
-import TemporaryRecord from "./TemporaryRecord";
+import TemporaryRecord from "./utils/TemporaryRecord";
 
 const logger = createLogger("LoginSecretBridge.ts");
 
