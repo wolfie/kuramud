@@ -22,6 +22,7 @@ export const ClientToServer = t.union([
   topicPayload("LOGIN", t.type({ playerUuid: tt.UUID, oneTimeCode: t.string })),
   topicPayload("LOGOUT", t.void),
   topicPayload("LOOK_ROOM", t.void),
+  topicPayload("LOOK_ITEM", t.type({ lookKeyword: t.string })),
   topicPayload("DEV_CLEANUP", t.void),
   topicPayload("WALK", t.type({ direction: Direction })),
 ]);
@@ -42,7 +43,18 @@ export const ServerToClient = t.union([
   topicPayload("LOGOUT", t.type({ playerUuid: tt.UUID, playerName: t.string })),
   topicPayload(
     "DESCRIBE_ROOM",
-    t.type({ description: t.string, exits: t.array(Direction) })
+    t.type({
+      description: t.string,
+      exits: t.array(Direction),
+      items: t.array(t.type({ name: t.string })),
+    })
+  ),
+  topicPayload(
+    "DESCRIBE_ITEM",
+    t.union([
+      t.type({ found: t.literal(false) }),
+      t.type({ found: t.literal(true), description: t.string }),
+    ])
   ),
   topicPayload(
     "WALK",

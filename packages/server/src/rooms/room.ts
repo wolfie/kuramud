@@ -7,7 +7,15 @@ export type Exit = {
   roomUuid: ValidRoomId;
 };
 
+export type Item = {
+  name: string;
+  description: string;
+  tags: string[];
+  hidden?: boolean;
+};
+
 export type Room = {
   description: string;
-  exits: Exit[];
+  exits: readonly Exit[];
+  items?: Readonly<Record<string, Item>>;
 };

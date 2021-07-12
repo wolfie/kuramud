@@ -31,7 +31,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [roomDescription, setRoomDescription] = React.useState<
     ServerToClientPayloadType<"DESCRIBE_ROOM">
-  >({ description: "", exits: [] });
+  >({ description: "", exits: [], items: [] });
 
   const appendMessage = (text: string) => {
     logger.log("append");
@@ -118,6 +118,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
                   <Room
                     description={roomDescription.description}
                     exits={roomDescription.exits}
+                    items={roomDescription.items.map((item) => item.name)}
                   />
                 )}
                 second={() => <Messages messages={messages} />}

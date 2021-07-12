@@ -9,6 +9,7 @@ import {
 } from "kuramud-common";
 import { mapObj } from "kuramud-common/lib/fns";
 import { getPlayerByUuid } from "../players";
+import { Room } from "../rooms/room";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
 import WalkLimiter from "./WalkLimiter";
@@ -30,6 +31,21 @@ type PlayerUuid = string; // just to document the intent
 
 const PLAYER_WALK_COOLDOWN_MS = 1000;
 
+const describeRoomToPlayer = (
+  eventSender: EventSender,
+  playerUuid: UUID,
+  roomOfPlayer: Room
+) =>
+  eventSender("DESCRIBE_ROOM", [playerUuid], {
+    description: roomOfPlayer.description,
+    exits: roomOfPlayer.exits.map((exit) => exit.direction),
+    items: Object.values(roomOfPlayer.items ?? {})
+      .filter((item) => !item.hidden)
+      .map((item) => ({
+        name: item.name,
+      })),
+  });
+
 class Engine {
   private rooms = StartWorld.Rooms;
   private users: Record<string, User> = {};
@@ -48,11 +64,27 @@ class Engine {
       const roomIdOfPlayer = this.usersCurrentRoom[playerUuid];
       const roomOfPlayer = this.rooms[roomIdOfPlayer];
 
-      options.eventSender("DESCRIBE_ROOM", [playerUuid], {
-        description: roomOfPlayer.description,
-        exits: roomOfPlayer.exits.map((exit) => exit.direction),
-      });
+      describeRoomToPlayer(options.eventSender, playerUuid, roomOfPlayer);
     });
+
+    this.eventDistributor.register(
+      "LOOK_ITEM",
+      ({ lookKeyword }, playerUuid) => {
+        const roomIdOfPlayer = this.usersCurrentRoom[playerUuid];
+        const roomOfPlayer = this.rooms[roomIdOfPlayer];
+        const matchingItem = Object.values(roomOfPlayer.items ?? {}).find(
+          (item) => item.tags.includes(lookKeyword.toLowerCase())
+        );
+
+        options.eventSender(
+          "DESCRIBE_ITEM",
+          [playerUuid],
+          matchingItem
+            ? { found: true, description: matchingItem.description }
+            : { found: false }
+        );
+      }
+    );
 
     this.eventDistributor.register("WALK", ({ direction }, playerUuid) => {
       if (!this.walkLimiter.isAllowed(playerUuid)) return;
@@ -88,10 +120,7 @@ class Engine {
         goingOrComing: "comingFrom",
         direction: oppositeDirection[direction],
       });
-      options.eventSender("DESCRIBE_ROOM", [playerUuid], {
-        description: nextRoom.description,
-        exits: nextRoom.exits.map((exit) => exit.direction),
-      });
+      describeRoomToPlayer(options.eventSender, playerUuid, nextRoom);
     });
   }
 
