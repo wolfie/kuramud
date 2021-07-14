@@ -23,6 +23,7 @@ export const ClientToServer = t.union([
   topicPayload("LOGOUT", t.void),
   topicPayload("LOOK_ROOM", t.void),
   topicPayload("LOOK_ITEM", t.type({ lookKeyword: t.string })),
+  topicPayload("PUSH_ITEM", t.type({ pushKeyword: t.string })),
   topicPayload("DEV_CLEANUP", t.void),
   topicPayload("WALK", t.type({ direction: Direction })),
 ]);
@@ -39,6 +40,7 @@ export type ServerToClientPayloadType<T extends ServerToClientTopic> = Extract<
   { topic: T }
 >["payload"];
 export const ServerToClient = t.union([
+  topicPayload("ECHO_MESSAGE", t.type({ message: t.string })),
   topicPayload("LOGIN", t.type({ playerUuid: tt.UUID, playerName: t.string })),
   topicPayload("LOGOUT", t.type({ playerUuid: tt.UUID, playerName: t.string })),
   topicPayload(

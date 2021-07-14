@@ -18,9 +18,11 @@ type ControlsProps = {
 };
 const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
   const [lookAt, setLookAt] = React.useState("");
+  const [pushOn, setPushOn] = React.useState("");
   const [ignoreGlobalKeys, setIgnoreGlobalKeys] = React.useState(false);
 
   const lookAtRef = React.useRef<HTMLInputElement>(null);
+  const pushOnRef = React.useRef<HTMLInputElement>(null);
 
   const api = useContext(SharedWebsocketContext);
 
@@ -46,6 +48,8 @@ const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
           return walk("E");
         case "l":
           return lookAtRef.current?.focus();
+        case "p":
+          return pushOnRef.current?.focus();
       }
     };
 
@@ -94,6 +98,20 @@ const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
           onKeyPress={onEnterPress(() => {
             setLookAt("");
             api.send("LOOK_ITEM", { lookKeyword: lookAt });
+          })}
+        />
+      </div>
+      <div>
+        Push on{" "}
+        <input
+          ref={pushOnRef}
+          onFocus={() => setIgnoreGlobalKeys(true)}
+          onBlur={() => setIgnoreGlobalKeys(false)}
+          value={pushOn}
+          onChange={(e) => setPushOn(e.target.value)}
+          onKeyPress={onEnterPress(() => {
+            setPushOn("");
+            api.send("PUSH_ITEM", { pushKeyword: pushOn });
           })}
         />
       </div>

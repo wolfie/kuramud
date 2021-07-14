@@ -22,6 +22,11 @@ const Button: Item = {
   description:
     "There's a small button under the plaque of the fountain. It looks like you can press it.",
   hidden: true,
+  onPush: (playerUuid) => ({
+    affectedPlayers: [playerUuid],
+    eventMessage:
+      "You push the button. It makes a satisfying click, but nothing further happens.",
+  }),
 };
 
 const TownSquare: Room = {

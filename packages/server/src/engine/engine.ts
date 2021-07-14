@@ -1,4 +1,4 @@
-import { UUID } from "io-ts-types";
+import { option, UUID } from "io-ts-types";
 import {
   ClientToServerPayloadType,
   ClientToServerTopic,
@@ -87,6 +87,42 @@ class Engine {
               }
             : { keyword: lookKeyword, found: false }
         );
+      }
+    );
+
+    this.eventDistributor.register(
+      "PUSH_ITEM",
+      ({ pushKeyword }, playerUuid) => {
+        const roomIdOfPlayer = this.usersCurrentRoom[playerUuid];
+        const roomOfPlayer = this.rooms[roomIdOfPlayer];
+        const matchingItem = Object.values(roomOfPlayer.items ?? {}).find(
+          (item) => item.tags.includes(pushKeyword.toLowerCase())
+        );
+
+        if (!matchingItem) {
+          options.eventSender("ECHO_MESSAGE", [playerUuid], {
+            message: `You can't find a ${pushKeyword} to push`,
+          });
+          return;
+        }
+
+        if (!matchingItem.onPush) {
+          options.eventSender("ECHO_MESSAGE", [playerUuid], {
+            message: `You can't push on ${pushKeyword}`,
+          });
+          return;
+        }
+
+        const pushResult = matchingItem.onPush(playerUuid);
+        if (!pushResult) {
+          options.eventSender("ECHO_MESSAGE", [playerUuid], {
+            message: "Alright. Nothing seems to happen.",
+          });
+        }
+
+        options.eventSender("ECHO_MESSAGE", pushResult.affectedPlayers, {
+          message: pushResult.eventMessage,
+        });
       }
     );
 

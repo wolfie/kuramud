@@ -102,6 +102,8 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
           appendMessage(`${action} ${fromOrTo} ${direction}`);
         }
       ),
+
+      api.on("ECHO_MESSAGE", ({ message }) => appendMessage(message)),
     ];
 
     return () => {

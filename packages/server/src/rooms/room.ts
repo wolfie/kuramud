@@ -1,3 +1,4 @@
+import { UUID } from "io-ts-types";
 import { ValidRoomId } from "./StartWorld";
 
 export type Direction = "N" | "S" | "W" | "E";
@@ -12,6 +13,10 @@ export type Item = {
   description: string;
   tags: string[];
   hidden?: boolean;
+  onPush?: (playerUuid: UUID) => {
+    eventMessage: string;
+    affectedPlayers: UUID[];
+  };
 };
 
 export type Room = {
