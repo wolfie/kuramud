@@ -8,15 +8,23 @@ export type Exit = {
   roomUuid: ValidRoomId;
 };
 
+export type GetPlayersInRoom = (roomId: ValidRoomId) => string[];
+
+export type OnPushResult = {
+  eventMessage: string;
+  affectedPlayers: string[];
+};
+
 export type Item = {
   name: string;
   description: string;
   tags: string[];
   hidden?: boolean;
-  onPush?: (playerUuid: UUID) => {
-    eventMessage: string;
-    affectedPlayers: UUID[];
-  };
+  onPush?: (props: {
+    playerUuid: UUID;
+    currentRoom: ValidRoomId;
+    getPlayersInRoom: GetPlayersInRoom;
+  }) => OnPushResult | OnPushResult[];
 };
 
 export type Room = {

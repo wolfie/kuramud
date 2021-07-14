@@ -113,16 +113,29 @@ class Engine {
           return;
         }
 
-        const pushResult = matchingItem.onPush(playerUuid);
-        if (!pushResult) {
+        const pushResult = matchingItem.onPush({
+          playerUuid,
+          currentRoom: roomIdOfPlayer,
+          getPlayersInRoom: (id) => this.roomsWithUsers[id],
+        });
+        if (
+          !pushResult ||
+          (Array.isArray(pushResult) && pushResult.length === 0)
+        ) {
           options.eventSender("ECHO_MESSAGE", [playerUuid], {
             message: "Alright. Nothing seems to happen.",
           });
         }
 
-        options.eventSender("ECHO_MESSAGE", pushResult.affectedPlayers, {
-          message: pushResult.eventMessage,
-        });
+        const arrayPushResult = Array.isArray(pushResult)
+          ? pushResult
+          : [pushResult];
+
+        arrayPushResult.forEach((result) =>
+          options.eventSender("ECHO_MESSAGE", result.affectedPlayers, {
+            message: result.eventMessage,
+          })
+        );
       }
     );
 
