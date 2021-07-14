@@ -25,7 +25,9 @@ const Button: Item = {
   hidden: true,
   onPush: ({ playerUuid, currentRoom, getPlayersInRoom }) => [
     {
-      affectedPlayers: getPlayersInRoom(currentRoom),
+      affectedPlayers: getPlayersInRoom(currentRoom).filter(
+        (playerInRoomUuid) => playerInRoomUuid !== playerUuid
+      ),
       eventMessage: `${
         getPlayerByUuid(playerUuid)?.username
       } pushes a button on the fountain.`,
