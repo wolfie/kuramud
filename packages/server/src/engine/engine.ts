@@ -9,7 +9,7 @@ import {
 } from "kuramud-common";
 import { mapObj } from "kuramud-common/lib/fns";
 import { getPlayerByUuid } from "../players";
-import { RoomResult } from "../rooms/room";
+import { RoomFn, Room, UseState } from "../rooms/room";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
 import WalkLimiter from "./WalkLimiter";
@@ -34,7 +34,7 @@ const PLAYER_WALK_COOLDOWN_MS = 1000;
 const describeRoomToPlayer = (
   eventSender: EventSender,
   playerUuid: UUID,
-  roomOfPlayer: RoomResult
+  roomOfPlayer: Room
 ) =>
   eventSender("DESCRIBE_ROOM", [playerUuid], {
     description: roomOfPlayer.description,
@@ -47,7 +47,12 @@ const describeRoomToPlayer = (
   });
 
 class Engine {
-  private rooms = mapObj(StartWorld.Rooms, (room) => room());
+  private rooms: Record<StartWorld.ValidRoomId, Room>;
+  private roomStates: Partial<
+    Record<StartWorld.ValidRoomId, Array<{ value: unknown; stateRef?: symbol }>>
+  > = {};
+  private dirtyRooms: Partial<Record<StartWorld.ValidRoomId, true>> = {};
+  private refreshTimeout: NodeJS.Timeout | undefined = undefined;
   private users: Record<string, User> = {};
   private roomsWithUsers: Record<StartWorld.ValidRoomId, PlayerUuid[]> = mapObj(
     StartWorld.Rooms,
@@ -60,6 +65,8 @@ class Engine {
   });
 
   constructor(private options: { eventSender: EventSender }) {
+    this.rooms = mapObj(StartWorld.Rooms, this.generateRooms);
+
     this.eventDistributor.register("LOOK_ROOM", (_, playerUuid) => {
       const roomIdOfPlayer = this.usersCurrentRoom[playerUuid];
       const roomOfPlayer = this.rooms[roomIdOfPlayer];
@@ -176,6 +183,89 @@ class Engine {
       describeRoomToPlayer(options.eventSender, playerUuid, nextRoom);
     });
   }
+
+  private createState = (roomId: StartWorld.ValidRoomId) => {
+    let stateIndex = 0;
+    const useState: UseState = <T>(a?: T | symbol, b?: symbol) => {
+      let initialValue: unknown;
+      let stateRef: symbol | undefined;
+
+      if (typeof a === "symbol" && typeof b === "undefined") {
+        initialValue = undefined;
+        stateRef = a;
+      } else {
+        initialValue = a;
+        stateRef = b;
+      }
+
+      const currentStateIndex = stateIndex;
+      const stateName = `${roomId}#${currentStateIndex}${stateRef ? "S" : ""}`;
+
+      if (!this.roomStates[roomId]) this.roomStates[roomId] = [];
+      const thisRoomStates = this.roomStates[roomId]!;
+      if (!thisRoomStates.hasOwnProperty(currentStateIndex)) {
+        logger.log(
+          `Initializing state ${stateName} as ${JSON.stringify(initialValue)}`
+        );
+        thisRoomStates[currentStateIndex] = {
+          stateRef,
+          value: initialValue,
+        };
+      }
+
+      stateIndex++;
+      return [
+        thisRoomStates[currentStateIndex].value,
+        (newValueOrSetter: unknown) => {
+          let getNewValue =
+            typeof newValueOrSetter === "function"
+              ? newValueOrSetter
+              : () => newValueOrSetter;
+
+          const oldValue = thisRoomStates[currentStateIndex].value;
+          const newValue = getNewValue(oldValue);
+          if (newValue === oldValue) {
+            logger.log(
+              `Not changing state ${stateName} from ${JSON.stringify(oldValue)}`
+            );
+            return;
+          }
+
+          logger.log(
+            `Changing state ${stateName} from ${oldValue} to ${newValue}`
+          );
+          thisRoomStates[currentStateIndex].value = newValue;
+          this.dirtyRooms[roomId] = true;
+          this.scheduleDirtyRoomsRun();
+        },
+      ];
+    };
+
+    return useState;
+  };
+
+  private generateRooms = (room: RoomFn, roomId: StartWorld.ValidRoomId) => {
+    logger.log(`Generating room ${roomId}`);
+    return room({ useState: this.createState(roomId) });
+  };
+
+  private scheduleDirtyRoomsRun = () => {
+    if (this.refreshTimeout) return;
+    logger.log("Scheduling dirty rooms");
+    this.refreshTimeout = setTimeout(() => {
+      this.rooms = {
+        ...this.rooms,
+        ...mapObj(this.dirtyRooms, (_, dirtyRoom) =>
+          this.generateRooms(
+            StartWorld.Rooms[dirtyRoom as StartWorld.ValidRoomId],
+            dirtyRoom
+          )
+        ),
+      };
+      this.dirtyRooms = {};
+      this.refreshTimeout = undefined;
+    }, 0);
+  };
 
   private addUserToRoom = (userUuid: UUID, roomId: StartWorld.ValidRoomId) => {
     logger.log(`addUserToRoom(${userUuid}, ${roomId})`);

@@ -27,10 +27,19 @@ export type Item = {
   }) => OnPushResult | OnPushResult[];
 };
 
-export type RoomResult = {
+export type Room = {
   description: string;
   exits: readonly Exit[];
   items?: Readonly<Record<string, Item>>;
 };
 
-export type Room = () => RoomResult;
+interface SetState<T> {
+  (state: T): void;
+  (callback: (oldState: T) => T): void;
+}
+export interface UseState {
+  <T = undefined>(stateId?: symbol): [T | undefined, SetState<T | undefined>];
+  <T>(initialValue: T, stateId?: symbol): [T, SetState<T>];
+}
+
+export type RoomFn = (utils: { useState: UseState }) => Room;

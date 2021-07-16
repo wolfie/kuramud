@@ -1,4 +1,4 @@
-import { Item, Room } from "../room";
+import { Item, RoomFn } from "../room";
 import { generateExits } from "../room.util";
 
 type SignProps = { on: boolean };
@@ -10,7 +10,7 @@ const Sign = ({ on }: SignProps): Item => ({
   tags: ["sign", "neon", "neon sign"],
 });
 
-const East: Room = () => {
+const East: RoomFn = () => {
   return {
     description: "You are east of the town square",
     exits: generateExits(["W", "TOWNSQUARE"]),
