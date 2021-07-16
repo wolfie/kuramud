@@ -1,6 +1,9 @@
+import { createLogger } from "kuramud-common";
 import { getPlayerByUuid } from "../../players";
 import { Item, RoomFn } from "../room";
 import { generateExits } from "../room.util";
+
+const logger = createLogger("TownSquare.ts");
 
 const Fountain: Item = {
   name: "a fountain",
@@ -38,19 +41,18 @@ const Button = ({ onPush }: ButtonProps): Item => ({
       {
         affectedPlayers: [playerUuid],
         eventMessage:
-          "You push the button. It makes a satisfying click, but nothing further happens.",
+          "You push the button. It makes a satisfying click, and you hear something towards the east.",
       },
     ];
   },
 });
 
-const SIGN_STATE_REF = Symbol("SIGN_STATE");
+export const SIGN_STATE_REF = Symbol("SIGN_STATE");
 
 const TownSquare: RoomFn = ({ useState }) => {
-  const [signIsOn, setSignIsOn] = useState(false, SIGN_STATE_REF);
-  const [signIsOn2, setSignIsOn2] = useState(false);
+  const [signState, setSignState] = useState(false, SIGN_STATE_REF);
 
-  console.log({ signIsOn, signIsOn2 });
+  logger.log({ signState });
 
   return {
     description: "This is the town square",
@@ -63,7 +65,7 @@ const TownSquare: RoomFn = ({ useState }) => {
     items: {
       FOUNTAIN: Fountain,
       PLAQUE: Plaque,
-      BUTTON: Button({ onPush: () => setSignIsOn((signIsOn) => !signIsOn) }),
+      BUTTON: Button({ onPush: () => setSignState((signState) => !signState) }),
     },
   };
 };

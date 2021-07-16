@@ -42,4 +42,16 @@ export interface UseState {
   <T>(initialValue: T, stateId?: symbol): [T, SetState<T>];
 }
 
-export type RoomFn = (utils: { useState: UseState }) => Room;
+export type OnStateChange<T> = (newValue: T) => void;
+
+export type SpyState = <T>(
+  stateRef: symbol,
+  onChange: OnStateChange<T>
+) => void;
+
+type RoomUtils = {
+  useState: UseState;
+  spyState: SpyState;
+};
+
+export type RoomFn = (utils: RoomUtils) => Room;

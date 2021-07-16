@@ -1,6 +1,6 @@
 import express from "express";
 import ws from "ws";
-import { ClientToServer, createLogger, decode } from "kuramud-common";
+import { ClientToServer, createLogger, decode, fns } from "kuramud-common";
 import Engine from "./engine/engine";
 import { UUID } from "io-ts-types";
 import WebSocket from "ws";
@@ -96,7 +96,7 @@ wsServer.on("connection", (socket) => {
       (entry) => entry.socket === socket
     )?.playerUuid;
 
-    const [rawTopic, rawPayload] = message.split(" ", 2);
+    const [rawTopic, rawPayload] = fns.splitBySpace(message);
     logger.log({ rawTopic, rawPayload });
     const result = decode(ClientToServer, {
       topic: rawTopic,
