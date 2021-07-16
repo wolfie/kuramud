@@ -1,4 +1,4 @@
-import { option, UUID } from "io-ts-types";
+import { UUID } from "io-ts-types";
 import {
   ClientToServerPayloadType,
   ClientToServerTopic,
@@ -9,7 +9,7 @@ import {
 } from "kuramud-common";
 import { mapObj } from "kuramud-common/lib/fns";
 import { getPlayerByUuid } from "../players";
-import { Room } from "../rooms/room";
+import { RoomResult } from "../rooms/room";
 import * as StartWorld from "../rooms/StartWorld";
 import { ServerEventDistributor } from "./ServerEventDistributor";
 import WalkLimiter from "./WalkLimiter";
@@ -34,7 +34,7 @@ const PLAYER_WALK_COOLDOWN_MS = 1000;
 const describeRoomToPlayer = (
   eventSender: EventSender,
   playerUuid: UUID,
-  roomOfPlayer: Room
+  roomOfPlayer: RoomResult
 ) =>
   eventSender("DESCRIBE_ROOM", [playerUuid], {
     description: roomOfPlayer.description,
@@ -47,7 +47,7 @@ const describeRoomToPlayer = (
   });
 
 class Engine {
-  private rooms = StartWorld.Rooms;
+  private rooms = mapObj(StartWorld.Rooms, (room) => room());
   private users: Record<string, User> = {};
   private roomsWithUsers: Record<StartWorld.ValidRoomId, PlayerUuid[]> = mapObj(
     StartWorld.Rooms,

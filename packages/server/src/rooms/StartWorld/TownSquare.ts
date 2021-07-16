@@ -40,7 +40,7 @@ const Button: Item = {
   ],
 };
 
-const TownSquare: Room = {
+const TownSquare: Room = () => ({
   description: "This is the town square",
   exits: generateExits(
     ["E", "EAST"],
@@ -49,6 +49,6 @@ const TownSquare: Room = {
     ["S", "SOUTH"]
   ),
   items: { FOUNTAIN: Fountain, PLAQUE: Plaque, BUTTON: Button },
-};
+});
 
 export default TownSquare;

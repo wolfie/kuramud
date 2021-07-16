@@ -27,8 +27,10 @@ export type Item = {
   }) => OnPushResult | OnPushResult[];
 };
 
-export type Room = {
+export type RoomResult = {
   description: string;
   exits: readonly Exit[];
   items?: Readonly<Record<string, Item>>;
 };
+
+export type Room = () => RoomResult;
