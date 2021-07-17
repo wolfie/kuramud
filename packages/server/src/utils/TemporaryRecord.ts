@@ -1,15 +1,18 @@
+import { values } from "fp-ts/lib/Map";
 import { createLogger } from "kuramud-common";
-import { filterObj } from "kuramud-common/lib/fns";
+import { partitionObj } from "../../../common/lib/fns";
 
 export type TemporaryRecordArgs = {
   ttlMs?: number;
   logger?: ReturnType<typeof createLogger>;
 };
 
-class TemporaryRecord<K extends string, V> {
-  private entries: Record<K, { creationTimestamp: number; data: V }> =
-    {} as any;
+type CleanupHandler<K, V> = (key: K, value: V) => void;
+
+class TemporaryRecord<K extends keyof any, V> {
+  private entries: Record<string, { creationTimestamp: number; data: V }> = {};
   private interval: ReturnType<typeof setInterval> | undefined;
+  private cleanupHandlers: CleanupHandler<K, V>[] = [];
   private readonly TTL_MS: number;
   private readonly logger: ReturnType<typeof createLogger>;
 
@@ -21,12 +24,17 @@ class TemporaryRecord<K extends string, V> {
   private cleanup = () => {
     const now = Date.now();
     const beforeEntries = Object.keys(this.entries).length;
-    this.entries = filterObj(
+    const [notExpired, expired] = partitionObj(
       this.entries,
       ([_key, { creationTimestamp }]) => creationTimestamp + this.TTL_MS >= now
     );
+    this.entries = notExpired;
     const afterEntries = Object.keys(this.entries).length;
     const entriesRemoved = beforeEntries - afterEntries;
+
+    Object.entries(expired).forEach(([key, entry]) =>
+      this.cleanupHandlers.forEach((handler) => handler(key as K, entry.data))
+    );
 
     if (entriesRemoved > 0) {
       this.logger.log(
@@ -63,7 +71,10 @@ class TemporaryRecord<K extends string, V> {
   };
 
   put = (key: K, value: V): void => {
-    this.entries[key] = { creationTimestamp: Date.now(), data: value };
+    this.entries[key as string] = {
+      creationTimestamp: Date.now(),
+      data: value,
+    };
     if (!this.interval) this.startInterval();
   };
 
@@ -75,7 +86,7 @@ class TemporaryRecord<K extends string, V> {
 
     const key = foundEntry[0] as K;
     const value = foundEntry[1];
-    delete this.entries[key];
+    delete this.entries[key as string];
 
     if (Object.keys(this.entries).length === 0) this.stopInterval();
     return [key, value];
@@ -86,6 +97,10 @@ class TemporaryRecord<K extends string, V> {
       this.entries
     ).find(([key, value]) => finder(key as K, value.data));
     return foundEntry ? [foundEntry[0] as K, foundEntry[1].data] : undefined;
+  };
+
+  addCleanupHandler = (handler: CleanupHandler<K, V>) => {
+    this.cleanupHandlers.push(handler);
   };
 }
 

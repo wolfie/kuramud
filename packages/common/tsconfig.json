@@ -13,5 +13,6 @@
     "outDir": "./lib",
     "lib": ["ES2020"]
   },
-  "include": ["src/**/*.ts", "../server/src/engine/EventDistributor.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts"]
 }

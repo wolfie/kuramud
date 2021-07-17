@@ -32,6 +32,7 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
   const [roomDescription, setRoomDescription] = React.useState<
     ServerToClientPayloadType<"DESCRIBE_ROOM">
   >({ description: "", exits: [], items: [] });
+  const [walkIsOnCooldown, setWalkIsOnCooldown] = React.useState(false);
 
   const appendMessage = (text: string) => {
     logger.log("append");
@@ -104,6 +105,8 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
       ),
 
       api.on("ECHO_MESSAGE", ({ message }) => appendMessage(message)),
+
+      api.on("WALK_STATE", ({ onCooldown }) => setWalkIsOnCooldown(onCooldown)),
     ];
 
     return () => {
@@ -135,7 +138,10 @@ const Game: React.FC<GameProps> = ({ playerUuid, oneTimeCode }) => {
               />
             )}
             second={() => (
-              <Controls enabledDirections={roomDescription.exits} />
+              <Controls
+                enabledDirections={roomDescription.exits}
+                walkIsDisabled={walkIsOnCooldown}
+              />
             )}
           />
         </Container>

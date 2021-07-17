@@ -70,6 +70,7 @@ export const ServerToClient = t.union([
       direction: Direction,
     })
   ),
+  topicPayload("WALK_STATE", t.type({ onCooldown: t.boolean })),
 ]);
 
 export type ServerToClientTopic = t.TypeOf<typeof ServerToClient>["topic"];

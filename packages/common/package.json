@@ -9,7 +9,8 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -b",
-    "clean": "tsc -b --clean"
+    "clean": "tsc -b --clean",
+    "test": "jest"
   },
   "dependencies": {
     "fp-ts": "^2.10.5",
@@ -17,6 +18,9 @@
     "loglevel": "^1.7.1"
   },
   "devDependencies": {
+    "@types/jest": "^26.0.24",
+    "jest": "26.6.0",
+    "ts-jest": "^27.0.3",
     "typescript": "^4.3.4"
   }
 }

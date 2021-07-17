@@ -15,8 +15,12 @@ const onEnterPress =
 
 type ControlsProps = {
   enabledDirections: Direction[];
+  walkIsDisabled: boolean;
 };
-const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
+const Controls: React.FC<ControlsProps> = ({
+  enabledDirections,
+  walkIsDisabled,
+}) => {
   const [lookAt, setLookAt] = React.useState("");
   const [pushOn, setPushOn] = React.useState("");
   const [ignoreGlobalKeys, setIgnoreGlobalKeys] = React.useState(false);
@@ -64,25 +68,25 @@ const Controls: React.FC<ControlsProps> = ({ enabledDirections }) => {
       <div>
         <button
           onClick={() => walk("N")}
-          disabled={!enabledDirections.includes("N")}
+          disabled={walkIsDisabled || !enabledDirections.includes("N")}
         >
           N
         </button>
         <button
           onClick={() => walk("S")}
-          disabled={!enabledDirections.includes("S")}
+          disabled={walkIsDisabled || !enabledDirections.includes("S")}
         >
           S
         </button>
         <button
           onClick={() => walk("W")}
-          disabled={!enabledDirections.includes("W")}
+          disabled={walkIsDisabled || !enabledDirections.includes("W")}
         >
           W
         </button>
         <button
           onClick={() => walk("E")}
-          disabled={!enabledDirections.includes("E")}
+          disabled={walkIsDisabled || !enabledDirections.includes("E")}
         >
           E
         </button>

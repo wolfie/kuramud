@@ -24,6 +24,9 @@ class WalkLimiter {
       return false;
     }
   };
+
+  onCooldownEnds = (handler: (playerUuid: PlayerUuid) => void) =>
+    this.recentWalkers.addCleanupHandler(handler);
 }
 
 export default WalkLimiter;

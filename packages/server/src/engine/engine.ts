@@ -184,6 +184,7 @@ class Engine {
       const playerName =
         getPlayerByUuid(playerUuid)?.username ?? "[playernotfound]";
 
+      options.eventSender("WALK_STATE", [playerUuid], { onCooldown: true });
       options.eventSender("WALK", this.roomsWithUsers[oldRoomId], {
         playerUuid,
         playerName,
@@ -198,6 +199,10 @@ class Engine {
       });
       describeRoomToPlayer(options.eventSender, playerUuid, nextRoom);
     });
+
+    this.walkLimiter.onCooldownEnds((playerUuid) =>
+      options.eventSender("WALK_STATE", [playerUuid], { onCooldown: false })
+    );
   }
 
   private createState = (roomId: StartWorld.ValidRoomId) => {
